@@ -1,0 +1,47 @@
+### Java ###
+*.class
+
+# Package Files #
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+### Maven ###
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+### Maven Patch ###
+.project
+.classpath
+
+# IntelliJ
+out/
+.idea/
+
+.settings/
+.springBeans
+**/target/
+/commit.txt
+/*/logs/
+/*/wrk/
+effective-pom.xml
+effective-settings.xml
+/*/.gwt/
+.cache
+*.iml
+*.log
+*.lck
+*/dependency-reduced-pom.xml
+node_modules
