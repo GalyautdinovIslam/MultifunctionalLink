@@ -1,4 +1,6 @@
 package ru.itis.exceptions;
 
-public class BadNicknameException extends Throwable {
+import ru.itis.exceptions.marks.InterfaceSignUpException;
+
+public class BadNicknameException extends Throwable implements InterfaceSignUpException {
 }

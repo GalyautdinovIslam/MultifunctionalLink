@@ -15,6 +15,8 @@ public interface AccountRepository{
 
     void updateAge(Account account);
 
+    void updateStatus(Long id);
+
     void subscribe(Account who, Account subTo) throws AlreadySubscribedException;
 
     void unsubscribe(Account who, Account subTo) throws AlreadyUnsubscribedException;

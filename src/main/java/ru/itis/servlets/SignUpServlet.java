@@ -1,7 +1,13 @@
 package ru.itis.servlets;
 
-import ru.itis.exceptions.*;
-import ru.itis.forms.AccountRegisterForm;
+import ru.itis.exceptions.EmailAlreadyExistException;
+import ru.itis.exceptions.SignUpException;
+import ru.itis.exceptions.marks.InterfaceSignUpException;
+import ru.itis.forms.AccountSignUpForm;
+import ru.itis.helpers.Messages;
+import ru.itis.models.Account;
+import ru.itis.services.AccountService;
+import ru.itis.services.MailService;
 import ru.itis.services.SecurityService;
 
 import javax.servlet.ServletConfig;
@@ -12,51 +18,70 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 
-@WebServlet("/signup")
+@WebServlet("/signUp")
 public class SignUpServlet extends HttpServlet {
 
     private ServletContext servletContext;
     private SecurityService securityService;
+    private AccountService accountService;
+    private MailService mailService;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         servletContext = config.getServletContext();
         securityService = (SecurityService) servletContext.getAttribute("securityService");
+        accountService = (AccountService) servletContext.getAttribute("accountService");
+        mailService = (MailService) servletContext.getAttribute("mailService");
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        if(securityService.isAuth(request)){
+        if (securityService.isAuth(request)) {
+            securityService.addMessage(request, Messages.ALREADY_AUTH.get(), false);
             response.sendRedirect(servletContext.getContextPath() + "/my");
         } else {
-            request.getRequestDispatcher("/WEB-INF/jsp/signup.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/jsp/signUp.jsp").forward(request, response);
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        AccountRegisterForm accountRegisterForm = AccountRegisterForm.builder()
+        AccountSignUpForm accountSignUpForm = AccountSignUpForm.builder()
                 .email(request.getParameter("email"))
                 .password(request.getParameter("password"))
                 .rePassword(request.getParameter("rePassword"))
                 .nickname(request.getParameter("nickname"))
                 .build();
 
+        List<InterfaceSignUpException> exceptions = new ArrayList<>();
+
         try {
-            securityService.signup(request, accountRegisterForm);
-        } catch (BadNicknameException | BadPasswordException | NicknameAlreadyExistException | SignUpPasswordMismatchException | BadEmailAddressException ex) {
-            request.setAttribute("email", accountRegisterForm.getEmail());
-            request.setAttribute("nickname", accountRegisterForm.getNickname());
-            request.setAttribute("message", ex.getMessage());
-            request.getRequestDispatcher("/WEB-INF/jsp/signup.jsp").forward(request, response);
+            securityService.signup(request, accountSignUpForm, exceptions);
+
+            Account account = (Account) request.getAttribute("justSignUp");
+
+            String code = accountService.generateSignUpCode(account);
+            String pathForMail = servletContext.getContextPath() + "/continueSignUp?r=" + code;
+            mailService.sendSuccessfulSignUpMessage(accountSignUpForm.getEmail(), pathForMail);
+
+            securityService.addMessage(request, Messages.JUST_SIGN_UP.get(), true);
+            response.sendRedirect(servletContext.getContextPath());
         } catch (EmailAlreadyExistException ex) {
-            // TODO: существующий имеил
-            request.setAttribute("email", accountRegisterForm.getEmail());
-            request.setAttribute("nickname", accountRegisterForm.getNickname());
-            request.setAttribute("message", "почта");
-            request.getRequestDispatcher("/WEB-INF/jsp/signup.jsp").forward(request, response);
+            String recoveryCode = accountService.generateRecoveryCode(accountSignUpForm.getEmail());
+            String pathForMail = servletContext.getContextPath() + "/newPassword?r=" + recoveryCode;
+            mailService.sendUnsuccessfulSignUpMessage(accountSignUpForm.getEmail(), pathForMail);
+
+            securityService.addMessage(request, Messages.JUST_SIGN_UP.get(), true);
+            response.sendRedirect(servletContext.getContextPath());
+        } catch (SignUpException ex) {
+            request.setAttribute("email", accountSignUpForm.getEmail());
+            request.setAttribute("nickname", accountSignUpForm.getNickname());
+            request.setAttribute("exceptions", exceptions);
+            request.getRequestDispatcher("/WEB-INF/jsp/signUp.jsp").forward(request, response);
         }
     }
 }

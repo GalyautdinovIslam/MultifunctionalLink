@@ -1,5 +1,11 @@
 package ru.itis.servlets;
 
+import ru.itis.exceptions.BadNewPasswordException;
+import ru.itis.exceptions.BadOldPasswordException;
+import ru.itis.exceptions.PasswordMismatchException;
+import ru.itis.exceptions.SamePasswordException;
+import ru.itis.forms.ChangePasswordForm;
+import ru.itis.helpers.Messages;
 import ru.itis.models.Account;
 import ru.itis.services.AccountService;
 import ru.itis.services.SecurityService;
@@ -29,27 +35,33 @@ public class SettingsServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        if(securityService.isAuth(request)){
+        if (securityService.isAuth(request)) {
             request.getRequestDispatcher("/WEB-INF/jsp/settings.jsp").forward(request, response);
         } else {
-            response.sendRedirect(servletContext.getContextPath() + "/signin");
+            securityService.addMessage(request, Messages.NOT_AUTH.get(), false);
+            response.sendRedirect(servletContext.getContextPath() + "/signIn");
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String oldPassword = request.getParameter("oldPassword");
-        String newPassword = request.getParameter("newPassword");
-        String reNewPassword = request.getParameter("reNewPassword");
+        ChangePasswordForm changePasswordForm = ChangePasswordForm.builder()
+                .oldPassword(request.getParameter("oldPassword"))
+                .newPassword(request.getParameter("newPassword"))
+                .reNewPassword(request.getParameter("reNewPassword"))
+                .build();
 
         Account account = securityService.getAuthAccount(request);
-        if(account.getPassword().equals(oldPassword) && newPassword.equals(reNewPassword)){
-            account.setPassword(newPassword);
-            accountService.updatePassword(account);
+
+        try {
+            accountService.changePassword(account, changePasswordForm);
+            securityService.updateAuthAccount(request, account);
+            securityService.addMessage(request, Messages.SUCCESSFUL_CHANGE_PASSWORD.get(), true);
             response.sendRedirect(servletContext.getContextPath() + "/settings");
-        } else {
-            request.setAttribute("message", "проблема");
+        } catch (BadOldPasswordException | BadNewPasswordException | PasswordMismatchException | SamePasswordException ex) {
+            request.setAttribute("message", ex.getMessage());
             request.getRequestDispatcher("/WEB-INF/jsp/settings.jsp").forward(request, response);
         }
+
     }
 }

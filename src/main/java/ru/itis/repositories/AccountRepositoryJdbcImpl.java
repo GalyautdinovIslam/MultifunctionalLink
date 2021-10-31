@@ -11,6 +11,8 @@ import ru.itis.models.CutLink;
 import ru.itis.models.MultiLink;
 
 import javax.sql.DataSource;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.*;
@@ -25,6 +27,9 @@ public class AccountRepositoryJdbcImpl implements AccountRepository {
 
     //language=SQL
     private final String SQL_UPDATE_AGE = "update account set age = ? where id = ?";
+
+    //language=SQL
+    private final String SQL_UPDATE_STATUS = "update account set activated = true where id = ?";
 
     //language=SQL
     private final String SQL_CHECK_SUB = "select * from subscription where who_id = ? and sub_to_id = ?";
@@ -96,7 +101,6 @@ public class AccountRepositoryJdbcImpl implements AccountRepository {
                         .nickname(resultSet.getString("a.nickname"))
                         .age(resultSet.getInt("a.age"))
                         .createdAt(resultSet.getDate("a.created_at"))
-                        .editedAt(resultSet.getDate("a.edited_at"))
                         .build();
                 accounts.put(account.getId(), account);
             }
@@ -109,31 +113,40 @@ public class AccountRepositoryJdbcImpl implements AccountRepository {
             if (cutLinks.containsKey(resultSet.getLong("c.id"))) {
                 cutLink = cutLinks.get(resultSet.getLong("c.id"));
             } else {
-                cutLink = CutLink.builder()
-                        .id(resultSet.getLong("c.id"))
-                        .cut(resultSet.getString("c.cut"))
-                        .link(resultSet.getString("c.link"))
-                        .clicks(resultSet.getInt("c.clicks"))
-                        .addedAt(resultSet.getDate("c.added_at"))
-                        .build();
-                cutLinks.put(cutLink.getId(), cutLink);
+                try {
+                    cutLink = CutLink.builder()
+                            .id(resultSet.getLong("c.id"))
+                            .cut(resultSet.getString("c.cut"))
+                            .link(new URI(resultSet.getString("c.link")))
+                            .clicks(resultSet.getInt("c.clicks"))
+                            .addedAt(resultSet.getDate("c.added_at"))
+                            .build();
+
+                    cutLinks.put(cutLink.getId(), cutLink);
+                } catch (URISyntaxException e) {
+                    throw new IllegalStateException(e);
+                }
             }
 
             if (multiLinks.containsKey(resultSet.getLong("m.id"))) {
                 multiLink = multiLinks.get(resultSet.getLong("m.id"));
             } else {
-                multiLink = MultiLink.builder()
-                        .id(resultSet.getLong("m.id"))
-                        .link(resultSet.getString("m.link"))
-                        .clicks(resultSet.getInt("m.clicks"))
-                        .addedAt(resultSet.getDate("m.added_at"))
-                        .build();
-                multiLinks.put(multiLink.getId(), multiLink);
+                try {
+                    multiLink = MultiLink.builder()
+                            .id(resultSet.getLong("m.id"))
+                            .link(new URI(resultSet.getString("m.link")))
+                            .clicks(resultSet.getInt("m.clicks"))
+                            .addedAt(resultSet.getDate("m.added_at"))
+                            .build();
+
+                    multiLinks.put(multiLink.getId(), multiLink);
+                } catch (URISyntaxException e) {
+                    throw new IllegalStateException(e);
+                }
+
             }
 
-            if (secondlyAccounts.containsKey(resultSet.getLong("aa.id"))) {
-                secondlyAccount = secondlyAccounts.get(resultSet.getLong("aa.id"));
-            } else {
+            if (!secondlyAccounts.containsKey(resultSet.getLong("aa.id"))) {
                 secondlyAccount = Account.builder()
                         .id(resultSet.getLong("aa.id"))
                         .email(resultSet.getString("aa.email"))
@@ -141,7 +154,6 @@ public class AccountRepositoryJdbcImpl implements AccountRepository {
                         .nickname(resultSet.getString("aa.nickname"))
                         .age(resultSet.getInt("aa.age"))
                         .createdAt(resultSet.getDate("aa.created_at"))
-                        .editedAt(resultSet.getDate("aa.edited_at"))
                         .build();
                 secondlyAccounts.put(secondlyAccount.getId(), secondlyAccount);
             }
@@ -196,7 +208,7 @@ public class AccountRepositoryJdbcImpl implements AccountRepository {
 
         account.setId(id);
         account.setCreatedAt(createdAt);
-        account.setEditedAt(editedAt);
+
     }
 
     @Override
@@ -218,6 +230,17 @@ public class AccountRepositoryJdbcImpl implements AccountRepository {
 
             preparedStatement.setInt(1, account.getAge());
             preparedStatement.setLong(2, account.getId());
+
+            return preparedStatement;
+        });
+    }
+
+    @Override
+    public void updateStatus(Long id) {
+        jdbcTemplate.update(connection -> {
+            PreparedStatement preparedStatement = connection.prepareStatement(SQL_UPDATE_STATUS);
+
+            preparedStatement.setLong(1, id);
 
             return preparedStatement;
         });
@@ -293,7 +316,7 @@ public class AccountRepositoryJdbcImpl implements AccountRepository {
 
     @Override
     public Optional<Account> findById(Long id) {
-        List<Account> accounts = jdbcTemplate.query(SQL_FIND_BY_NICKNAME, rse, id);
+        List<Account> accounts = jdbcTemplate.query(SQL_FIND_BY_ID, rse, id);
         if (accounts.size() > 1) throw new IllegalStateException();
         else if (accounts.size() == 1) return Optional.of(accounts.get(0));
         else return Optional.empty();

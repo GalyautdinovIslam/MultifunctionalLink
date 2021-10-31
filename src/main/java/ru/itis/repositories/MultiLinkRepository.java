@@ -1,13 +1,12 @@
 package ru.itis.repositories;
 
 import ru.itis.models.Account;
-import ru.itis.models.CutLink;
 import ru.itis.models.MultiLink;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface MultiLinkRepository{
+public interface MultiLinkRepository {
 
     void createMulti(MultiLink multiLink);
 

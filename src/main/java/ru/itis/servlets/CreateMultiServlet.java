@@ -1,5 +1,7 @@
 package ru.itis.servlets;
 
+import ru.itis.exceptions.BadLinkException;
+import ru.itis.helpers.Messages;
 import ru.itis.models.Account;
 import ru.itis.models.MultiLink;
 import ru.itis.services.MultiLinkService;
@@ -13,6 +15,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 @WebServlet("/create/multi")
 public class CreateMultiServlet extends HttpServlet {
@@ -33,24 +37,36 @@ public class CreateMultiServlet extends HttpServlet {
         if (securityService.isAuth(request)) {
             request.getRequestDispatcher("/WEB-INF/jsp/createMulti.jsp").forward(request, response);
         } else {
-            response.sendRedirect(servletContext.getContextPath() + "/signin");
+            securityService.addMessage(request, Messages.NOT_AUTH.get(), false);
+            response.sendRedirect(servletContext.getContextPath() + "/signIn");
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         String link = request.getParameter("link");
-        Account owner = securityService.getAuthAccount(request);
+        try {
+            multiLinkService.isValid(link);
+            Account owner = securityService.getAuthAccount(request);
 
-        MultiLink multiLink = MultiLink.builder()
-                .owner(owner)
-                .link(link)
-                .build();
+            try {
+                URI uri = new URI(link);
+                MultiLink multiLink = MultiLink.builder()
+                        .owner(owner)
+                        .link(uri)
+                        .build();
 
-        multiLinkService.createMulti(multiLink);
-        owner.getMultiLinks().add(multiLink);
+                multiLinkService.createMulti(multiLink);
+                owner.getMultiLinks().add(multiLink);
+                securityService.updateAuthAccount(request, owner);
 
-        request.getSession().setAttribute("authAccount", owner);
-        response.sendRedirect(servletContext.getContextPath() + "/stats?link=multi&id=" + multiLink.getId());
+                response.sendRedirect(servletContext.getContextPath() + "/stats?link=multi&id=" + multiLink.getId());
+            } catch (URISyntaxException ex) {
+                throw new BadLinkException();
+            }
+        } catch (BadLinkException ex) {
+            request.setAttribute("message", ex.getMessage());
+            request.getRequestDispatcher("/WEB-INF/jsp/createMulti.jsp").forward(request, response);
+        }
     }
 }

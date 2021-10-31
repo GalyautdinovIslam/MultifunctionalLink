@@ -10,14 +10,24 @@ import java.util.Optional;
 public class SecurityRepositoryJdbcImpl implements SecurityRepository {
 
     //language=SQL
-    private final String SQL_FIND_BY_RECOVERY_CODE = "select * from security s " +
-            "left join account a on s.account_id = a.id where recovery_code = ?";
+    private final String SQL_FIND_BY_RECOVERY_CODE = "select * from recovery r " +
+            "left join account a on r.account_id = a.id where r.recovery_code = ?";
 
     //language=SQL
-    private final String SQL_CREATE_RECOVERY_CODE = "insert into security(account_id, recovery_code) values (?, ?)";
+    private final String SQL_CREATE_RECOVERY_CODE = "insert into recovery(account_id, recovery_code) values (?, ?)";
 
     //language=SQL
-    private final String SQL_DELETE_RECOVERY_CODE = "delete from security where recovery_code = ?";
+    private final String SQL_DELETE_RECOVERY_CODE = "delete from recovery where account_id = ?";
+
+    //language=SQL
+    private final String SQL_FIND_BY_SIGN_UP_CODE = "select * from sign_up s " +
+            "left join account a on s.account_id = a.id where s.code = ?";
+
+    //language=SQL
+    private final String SQL_CREATE_SIGN_UP_CODE = "insert into sign_up(account_id, code) values (?, ?)";
+
+    //language=SQL
+    private final String SQL_DELETE_SIGN_UP_CODE = "delete from sign_up where account_id = ?";
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -25,9 +35,8 @@ public class SecurityRepositoryJdbcImpl implements SecurityRepository {
         this.jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
-    @Override
-    public Optional<Account> findByRecoveryCode(String recoveryCode) {
-        return jdbcTemplate.query(SQL_FIND_BY_RECOVERY_CODE, resultSet -> {
+    private Optional<Account> getAccountByCode(String code) {
+        return jdbcTemplate.query(SQL_FIND_BY_SIGN_UP_CODE, resultSet -> {
             if (resultSet.next()) {
                 return Optional.of(Account.builder()
                         .id(resultSet.getLong("a.id"))
@@ -36,12 +45,16 @@ public class SecurityRepositoryJdbcImpl implements SecurityRepository {
                         .nickname(resultSet.getString("a.nickname"))
                         .age(resultSet.getInt("a.age"))
                         .createdAt(resultSet.getDate("a.created_at"))
-                        .editedAt(resultSet.getDate("a.edited_at"))
                         .build());
             } else {
                 return Optional.empty();
             }
-        }, recoveryCode);
+        }, code);
+    }
+
+    @Override
+    public Optional<Account> findByRecoveryCode(String recoveryCode) {
+        return getAccountByCode(recoveryCode);
     }
 
     @Override
@@ -57,11 +70,39 @@ public class SecurityRepositoryJdbcImpl implements SecurityRepository {
     }
 
     @Override
-    public void deleteRecoveryCode(String recoveryCode) {
+    public void deleteRecoveryCode(Long id) {
         jdbcTemplate.update(connection -> {
             PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_RECOVERY_CODE);
 
-            preparedStatement.setString(1, recoveryCode);
+            preparedStatement.setLong(1, id);
+
+            return preparedStatement;
+        });
+    }
+
+    @Override
+    public Optional<Account> findBySignUpCode(String code) {
+        return getAccountByCode(code);
+    }
+
+    @Override
+    public void createSignUpCode(Account account, String code) {
+        jdbcTemplate.update(connection -> {
+            PreparedStatement preparedStatement = connection.prepareStatement(SQL_CREATE_SIGN_UP_CODE);
+
+            preparedStatement.setLong(1, account.getId());
+            preparedStatement.setString(2, code);
+
+            return preparedStatement;
+        });
+    }
+
+    @Override
+    public void deleteSignUpCode(Long id) {
+        jdbcTemplate.update(connection -> {
+            PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_SIGN_UP_CODE);
+
+            preparedStatement.setLong(1, id);
 
             return preparedStatement;
         });

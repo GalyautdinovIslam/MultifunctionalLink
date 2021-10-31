@@ -10,5 +10,11 @@ public interface SecurityRepository {
 
     void createRecoveryCode(Account account, String recoveryCode);
 
-    void deleteRecoveryCode(String recoveryCode);
+    void deleteRecoveryCode(Long id);
+
+    Optional<Account> findBySignUpCode(String code);
+
+    void createSignUpCode(Account account, String code);
+
+    void deleteSignUpCode(Long id);
 }

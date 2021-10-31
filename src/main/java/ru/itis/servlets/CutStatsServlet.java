@@ -1,5 +1,7 @@
 package ru.itis.servlets;
 
+import ru.itis.exceptions.BadCutIdException;
+import ru.itis.helpers.Messages;
 import ru.itis.models.CutLink;
 import ru.itis.services.CutLinkService;
 import ru.itis.services.SecurityService;
@@ -31,30 +33,35 @@ public class CutStatsServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        if(securityService.isAuth(request)){
+        if (securityService.isAuth(request)) {
             Set<CutLink> cutLinks = securityService.getAuthAccount(request).getCutLinks();
             String idString = request.getParameter("id");
-            Long id = -1L;
             try {
                 if (idString != null) {
-                    id = Long.parseLong(idString);
+                    long id = Long.parseLong(idString);
 
                     Optional<CutLink> optionalCutLink = cutLinkService.findById(id);
-                    if (!optionalCutLink.isPresent()) throw new Exception();
+                    if (!optionalCutLink.isPresent()) {
+                        throw new BadCutIdException();
+                    }
                     CutLink cutLink = optionalCutLink.get();
 
-                    if (!cutLinks.contains(cutLink)) throw new Exception();
+                    if (!cutLinks.contains(cutLink)) {
+                        throw new BadCutIdException();
+                    }
 
                     request.setAttribute("cutLink", cutLink);
                     request.getRequestDispatcher("/WEB-INF/jsp/oneCutStats.jsp").forward(request, response);
                 } else {
                     request.getRequestDispatcher("/WEB-INF/jsp/allCutStats.jsp").forward(request, response);
                 }
-            } catch (Exception e){
-                response.sendRedirect(servletContext.getContextPath() + "/stats?link=cut");
+            } catch (NumberFormatException | BadCutIdException ex) {
+                securityService.addMessage(request, Messages.BAD_LINK_ID.get(), false);
+                response.sendRedirect(servletContext.getContextPath() + "/stats/cut");
             }
         } else {
-            request.getRequestDispatcher("/WEB-INF/jsp/signin.jsp").forward(request, response);
+            securityService.addMessage(request, Messages.NOT_AUTH.get(), false);
+            request.getRequestDispatcher("/WEB-INF/jsp/signIn.jsp").forward(request, response);
         }
     }
 }

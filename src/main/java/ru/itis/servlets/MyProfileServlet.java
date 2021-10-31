@@ -1,5 +1,6 @@
 package ru.itis.servlets;
 
+import ru.itis.helpers.Messages;
 import ru.itis.services.SecurityService;
 
 import javax.servlet.ServletConfig;
@@ -25,10 +26,11 @@ public class MyProfileServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        if(securityService.isAuth(request)){
+        if (securityService.isAuth(request)) {
             request.getRequestDispatcher("/WEB-INF/jsp/myProfile.jsp").forward(request, response);
         } else {
-            response.sendRedirect(servletContext.getContextPath() + "/signin");
+            securityService.addMessage(request, Messages.NOT_AUTH.get(), false);
+            response.sendRedirect(servletContext.getContextPath() + "/signIn");
         }
     }
 }

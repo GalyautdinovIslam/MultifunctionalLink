@@ -1,59 +1,36 @@
 package ru.itis.services;
 
 import ru.itis.exceptions.*;
-import ru.itis.forms.AccountRegisterForm;
+import ru.itis.exceptions.marks.InterfaceSignUpException;
+import ru.itis.forms.AccountSignInForm;
+import ru.itis.forms.AccountSignUpForm;
+import ru.itis.helpers.EncryptHelper;
+import ru.itis.helpers.ValidateHelper;
 import ru.itis.models.Account;
 import ru.itis.repositories.AccountRepository;
-import ru.itis.repositories.SecurityRepository;
 
 import javax.servlet.http.HttpServletRequest;
-import java.security.SecureRandom;
+import javax.servlet.http.HttpSession;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class SecurityServiceImpl implements SecurityService {
 
+    private final EncryptHelper encryptHelper;
+    private final ValidateHelper validator;
     private final AccountRepository accountRepository;
-    private final SecurityRepository securityRepository;
 
-    public SecurityServiceImpl(AccountRepository accountRepository, SecurityRepository securityRepository) {
+    public SecurityServiceImpl(EncryptHelper encryptHelper, ValidateHelper validator, AccountRepository accountRepository) {
+        this.encryptHelper = encryptHelper;
+        this.validator = validator;
         this.accountRepository = accountRepository;
-        this.securityRepository = securityRepository;
     }
 
-    @Override
-    public Optional<Account> checkRecoveryCode(String recoveryCode) {
-        return securityRepository.findByRecoveryCode(recoveryCode);
-    }
-
-    @Override
-    public String generateRecoveryCode(Account account) {
-        String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        String lower = upper.toLowerCase();
-        String digit = "0123456789";
-        char[] alphabet = (upper + lower + digit).toCharArray();
-
-        Random random = new SecureRandom();
-
-        while (true) {
-            char[] buf = new char[256];
-            for(int i = 0; i < 256; i++){
-                buf[i] = alphabet[random.nextInt(alphabet.length)];
-            }
-
-            String toValid = new String(buf);
-            if (!checkRecoveryCode(toValid).isPresent()) {
-                securityRepository.createRecoveryCode(account, toValid);
-                return toValid;
-            }
-        }
-    }
-
-    @Override
-    public void deleteRecoveryCode(String recoveryCode) {
-        securityRepository.deleteRecoveryCode(recoveryCode);
+    private void checkNicknameExisting(String nickname) throws NicknameAlreadyExistException {
+        if (accountRepository.findByNickname(nickname).isPresent())
+            throw new NicknameAlreadyExistException();
     }
 
     @Override
@@ -67,54 +44,91 @@ public class SecurityServiceImpl implements SecurityService {
     }
 
     @Override
-    public void signup(HttpServletRequest request, AccountRegisterForm accountRegisterForm) throws BadEmailAddressException, BadNicknameException, NicknameAlreadyExistException, BadPasswordException, SignUpPasswordMismatchException, EmailAlreadyExistException {
-        String email = accountRegisterForm.getEmail();
-        String password = accountRegisterForm.getPassword();
-        String rePassword = accountRegisterForm.getRePassword();
-        String nickname = accountRegisterForm.getNickname();
-
-        String emailRegex = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+" +
-                "@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}" +
-                "\\.[0-9]{1,3}\\])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$";
-        Pattern emailPattern = Pattern.compile(emailRegex);
-        Matcher emailMatcher = emailPattern.matcher(email);
-        if (!emailMatcher.matches()) throw new BadEmailAddressException();
-
-        if (nickname == null ||
-                nickname.length() > 20 ||
-                nickname.length() < 1 ||
-                nickname.replaceAll("[A-Za-z0-9]", "").length() > 0)
-            throw new BadNicknameException();
-
-        if(accountRepository.findByNickname(nickname).isPresent())
-            throw new NicknameAlreadyExistException();
-
-        if (password == null || password.length() > 32 || password.length() < 8 ||
-                password.length() == password.replaceAll("[a-z]", "").length() ||
-                password.length() == password.replaceAll("[A-Z]", "").length() ||
-                password.length() == password.replaceAll("[0-9]", "").length() ||
-                password.replaceAll("[A-Za-z0-9]", "").length() == 0)
-            throw new BadPasswordException();
-
-        if (!password.equals(rePassword))
-            throw new SignUpPasswordMismatchException();
-
-        if (accountRepository.findByEmail(email).isPresent())
-            throw new EmailAlreadyExistException();
-
-        Account account = new Account(email, password, nickname);
-        accountRepository.createAccount(account);
+    public void updateAuthAccount(HttpServletRequest request, Account account) {
         request.getSession().setAttribute("authAccount", account);
     }
 
     @Override
-    public void signin(HttpServletRequest request, String email, String password) throws IncorrectSignInDataException {
+    public void addMessage(HttpServletRequest request, String message, boolean type) {
+        HttpSession session = request.getSession();
+        if (session.getAttribute("messageMap") == null) {
+            session.setAttribute("messageMap", new HashMap<String, Boolean>());
+        }
+        Map<String, Boolean> map = (Map<String, Boolean>) session.getAttribute("messageMap");
+        map.put(message, type);
+    }
+
+    @Override
+    public void signup(HttpServletRequest request, AccountSignUpForm accountSignUpForm, List<InterfaceSignUpException> exceptions) throws EmailAlreadyExistException, SignUpException {
+        String email = accountSignUpForm.getEmail();
+        String password = accountSignUpForm.getPassword();
+        String rePassword = accountSignUpForm.getRePassword();
+        String nickname = accountSignUpForm.getNickname();
+
+        try {
+            validator.checkEmail(email);
+        } catch (BadEmailAddressException e) {
+            exceptions.add(e);
+        }
+
+        try {
+            validator.checkNickname(nickname);
+        } catch (BadNicknameException e) {
+            exceptions.add(e);
+        }
+
+        try {
+            checkNicknameExisting(nickname);
+        } catch (NicknameAlreadyExistException e) {
+            exceptions.add(e);
+        }
+
+        try {
+            validator.checkPassword(password);
+        } catch (BadPasswordException e) {
+            exceptions.add(e);
+        }
+
+        try {
+            validator.checkRePassword(password, rePassword);
+        } catch (PasswordMismatchException e) {
+            exceptions.add(e);
+        }
+
+        if (exceptions.size() > 0) throw new SignUpException();
+
+        if (accountRepository.findByEmail(email).isPresent())
+            throw new EmailAlreadyExistException();
+
+        password = encryptHelper.encryptPassword(password);
+        Account account = new Account(email, password, nickname);
+        accountRepository.createAccount(account);
+        request.setAttribute("justSignUp", account);
+    }
+
+    @Override
+    public void signIn(HttpServletRequest request, AccountSignInForm accountSignInForm) throws IncorrectSignInDataException {
+        String email = accountSignInForm.getEmail();
+        String password = encryptHelper.encryptPassword(accountSignInForm.getPassword());
+
         Optional<Account> optionalAccount = accountRepository.findByEmail(email);
-        if(!optionalAccount.isPresent()) throw new IncorrectSignInDataException();
+
+        if (!optionalAccount.isPresent()) {
+            throw new IncorrectSignInDataException();
+        }
 
         Account account = optionalAccount.get();
-        if (password.equals(account.getPassword())) request.getSession().setAttribute("authAccount", account);
-        else throw new IncorrectSignInDataException();
+
+        if (password.equals(account.getPassword())) {
+            login(request, account);
+        } else {
+            throw new IncorrectSignInDataException();
+        }
+    }
+
+    @Override
+    public void login(HttpServletRequest request, Account account) {
+        request.getSession().setAttribute("authAccount", account);
     }
 
     @Override
@@ -122,4 +136,5 @@ public class SecurityServiceImpl implements SecurityService {
         request.getSession().setAttribute("authAccount", null);
         request.setAttribute("authAccount", null);
     }
+
 }

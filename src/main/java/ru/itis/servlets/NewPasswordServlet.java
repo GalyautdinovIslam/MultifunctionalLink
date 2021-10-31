@@ -1,5 +1,9 @@
 package ru.itis.servlets;
 
+import ru.itis.exceptions.BadNewPasswordException;
+import ru.itis.exceptions.PasswordMismatchException;
+import ru.itis.forms.RecoveryPasswordForm;
+import ru.itis.helpers.Messages;
 import ru.itis.models.Account;
 import ru.itis.services.AccountService;
 import ru.itis.services.SecurityService;
@@ -14,7 +18,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Optional;
 
-@WebServlet("/newpassword")
+@WebServlet("/newPassword")
 public class NewPasswordServlet extends HttpServlet {
 
     private ServletContext servletContext;
@@ -31,35 +35,45 @@ public class NewPasswordServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String recoveryCode = request.getParameter("r");
-        if (recoveryCode != null && !recoveryCode.equals("")) {
-            Optional<Account> optionalAccount = securityService.checkRecoveryCode(recoveryCode);
-            if (optionalAccount.isPresent()) {
-                securityService.logout(request);
-                Account account = optionalAccount.get();
-                request.setAttribute("recoveryAccount", account);
-                request.getRequestDispatcher("WEB-INF/jsp/newPassword.jsp").forward(request, response);
-            }
+
+        if (recoveryCode == null || recoveryCode.equals("")) {
+            response.sendRedirect(servletContext.getContextPath());
         }
-        response.sendRedirect(servletContext.getContextPath());
+
+        Optional<Account> optionalAccount = accountService.checkRecoveryCode(recoveryCode);
+
+        if (optionalAccount.isPresent()) {
+            securityService.logout(request);
+            Account account = optionalAccount.get();
+            request.setAttribute("recoveryAccount", account);
+            request.getRequestDispatcher("WEB-INF/jsp/newPassword.jsp").forward(request, response);
+        } else {
+            response.sendRedirect(servletContext.getContextPath());
+        }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String recoveryCode = request.getParameter("r");
-        String newPassword = request.getParameter("newPassword");
-        String reNewPassword = request.getParameter("reNewPassword");
+        RecoveryPasswordForm recoveryPasswordForm = RecoveryPasswordForm.builder()
+                .newPassword(request.getParameter("newPassword"))
+                .reNewPassword(request.getParameter("reNewPassword"))
+                .build();
 
         Account account = (Account) request.getAttribute("recoveryAccount");
-        account = accountService.findById(account.getId()).get();
+        Optional<Account> optionalAccount = accountService.findById(account.getId());
 
-        if (newPassword.equals(reNewPassword) && !account.getPassword().equals(newPassword)) {
-            account.setPassword(newPassword);
-            accountService.updatePassword(account);
-            securityService.deleteRecoveryCode(recoveryCode);
-            response.sendRedirect(servletContext.getContextPath() + "/signin");
+        if (optionalAccount.isPresent()) {
+            account = optionalAccount.get();
+            try {
+                accountService.recoveryPassword(account, recoveryPasswordForm);
+                securityService.addMessage(request, Messages.SUCCESSFUL_CHANGE_PASSWORD.get(), true);
+                response.sendRedirect(servletContext.getContextPath() + "/signIn");
+            } catch (BadNewPasswordException | PasswordMismatchException ex) {
+                request.setAttribute("message", ex.getMessage());
+                request.getRequestDispatcher("WEB-INF/jsp/newPassword.jsp").forward(request, response);
+            }
         } else {
-            request.setAttribute("message", "пароли не совпадают");
-            request.getRequestDispatcher("WEB-INF/jsp/newPassword.jsp").forward(request, response);
+            response.sendRedirect(servletContext.getContextPath());
         }
     }
 }

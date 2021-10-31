@@ -1,5 +1,7 @@
 package ru.itis.servlets;
 
+import ru.itis.exceptions.BadMultiIdException;
+import ru.itis.helpers.Messages;
 import ru.itis.models.MultiLink;
 import ru.itis.services.MultiLinkService;
 import ru.itis.services.SecurityService;
@@ -34,27 +36,34 @@ public class MultiStatsServlet extends HttpServlet {
         if (securityService.isAuth(request)) {
             Set<MultiLink> multiLinks = securityService.getAuthAccount(request).getMultiLinks();
             String idString = request.getParameter("id");
-            Long id = -1L;
             try {
                 if (idString != null) {
-                    id = Long.parseLong(idString);
+                    long id = Long.parseLong(idString);
 
                     Optional<MultiLink> optionalMultiLink = multiLinkService.findById(id);
-                    if (!optionalMultiLink.isPresent()) throw new Exception();
+
+                    if (!optionalMultiLink.isPresent()) {
+                        throw new BadMultiIdException();
+                    }
+
                     MultiLink multiLink = optionalMultiLink.get();
 
-                    if (!multiLinks.contains(multiLink)) throw new Exception();
+                    if (!multiLinks.contains(multiLink)) {
+                        throw new BadMultiIdException();
+                    }
 
                     request.setAttribute("multiLink", multiLink);
                     request.getRequestDispatcher("/WEB-INF/jsp/oneMultiStats.jsp").forward(request, response);
                 } else {
                     request.getRequestDispatcher("/WEB-INF/jsp/allMultiStats.jsp").forward(request, response);
                 }
-            } catch (Exception e) {
-                response.sendRedirect(servletContext.getContextPath() + "/stats?link=multi");
+            } catch (NumberFormatException | BadMultiIdException ex) {
+                securityService.addMessage(request, Messages.BAD_LINK_ID.get(), false);
+                response.sendRedirect(servletContext.getContextPath() + "/stats/multi");
             }
         } else {
-            request.getRequestDispatcher("/WEB-INF/jsp/signin.jsp").forward(request, response);
+            securityService.addMessage(request, Messages.NOT_AUTH.get(), false);
+            request.getRequestDispatcher("/WEB-INF/jsp/signIn.jsp").forward(request, response);
         }
     }
 }

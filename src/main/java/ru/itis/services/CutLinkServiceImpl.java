@@ -1,41 +1,23 @@
 package ru.itis.services;
 
-import ru.itis.models.Account;
+import ru.itis.exceptions.BadLinkException;
+import ru.itis.helpers.CodeGenerator;
+import ru.itis.helpers.ValidateHelper;
 import ru.itis.models.CutLink;
 import ru.itis.repositories.CutLinkRepository;
 
-import java.security.SecureRandom;
-import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 
 public class CutLinkServiceImpl implements CutLinkService {
+
+    private final ValidateHelper validator;
+    private final CodeGenerator codeGenerator;
     private final CutLinkRepository cutLinkRepository;
 
-    public CutLinkServiceImpl(CutLinkRepository cutLinkRepository) {
+    public CutLinkServiceImpl(ValidateHelper validator, CodeGenerator codeGenerator, CutLinkRepository cutLinkRepository) {
+        this.validator = validator;
+        this.codeGenerator = codeGenerator;
         this.cutLinkRepository = cutLinkRepository;
-    }
-
-    @Override
-    public String generateCut(int length) {
-        String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        String lower = upper.toLowerCase();
-        String digit = "0123456789";
-        char[] alphabet = (upper + lower + digit).toCharArray();
-
-        Random random = new SecureRandom();
-
-        while (true) {
-            char[] buf = new char[length];
-            for(int i = 0; i < length; i++){
-                buf[i] = alphabet[random.nextInt(alphabet.length)];
-            }
-
-            String toValid = new String(buf);
-            if (!cutLinkRepository.findByCut(toValid).isPresent()) {
-                return toValid;
-            }
-        }
     }
 
     @Override
@@ -44,18 +26,18 @@ public class CutLinkServiceImpl implements CutLinkService {
     }
 
     @Override
-    public void deleteCutById(CutLink cutLink) {
-        cutLinkRepository.deleteCutById(cutLink);
+    public String generateCut() {
+        while (true) {
+            String toValid = codeGenerator.generateCode(8);
+            if (!cutLinkRepository.findByCut(toValid).isPresent()) {
+                return toValid;
+            }
+        }
     }
 
     @Override
-    public void deleteAllCutByAccount(Account account) {
-        cutLinkRepository.deleteAllCutByAccount(account);
-    }
-
-    @Override
-    public Optional<CutLink> findById(Long id) {
-        return cutLinkRepository.findById(id);
+    public void isValid(String link) throws BadLinkException {
+        validator.checkLink(link);
     }
 
     @Override
@@ -64,12 +46,7 @@ public class CutLinkServiceImpl implements CutLinkService {
     }
 
     @Override
-    public List<CutLink> findByAccount(Account account) {
-        return cutLinkRepository.findByAccount(account);
-    }
-
-    @Override
-    public List<CutLink> findAll() {
-        return cutLinkRepository.findAll();
+    public Optional<CutLink> findById(Long id) {
+        return cutLinkRepository.findById(id);
     }
 }

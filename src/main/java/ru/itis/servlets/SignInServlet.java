@@ -1,6 +1,8 @@
 package ru.itis.servlets;
 
 import ru.itis.exceptions.IncorrectSignInDataException;
+import ru.itis.forms.AccountSignInForm;
+import ru.itis.helpers.Messages;
 import ru.itis.services.SecurityService;
 
 import javax.servlet.ServletConfig;
@@ -12,8 +14,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@WebServlet("/signin")
+@WebServlet("/signIn")
 public class SignInServlet extends HttpServlet {
+
     private ServletContext servletContext;
     private SecurityService securityService;
 
@@ -25,25 +28,28 @@ public class SignInServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        if(securityService.isAuth(request)){
+        if (securityService.isAuth(request)) {
+            securityService.addMessage(request, Messages.ALREADY_AUTH.get(), false);
             response.sendRedirect(servletContext.getContextPath() + "/my");
         } else {
-            request.getRequestDispatcher("/WEB-INF/jsp/signin.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/jsp/signIn.jsp").forward(request, response);
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String email = request.getParameter("email");
-        String password = request.getParameter("password");
+        AccountSignInForm accountSignInForm = AccountSignInForm.builder()
+                .email(request.getParameter("email"))
+                .password(request.getParameter("password"))
+                .build();
 
         try {
-            securityService.signin(request, email, password);
+            securityService.signIn(request, accountSignInForm);
             response.sendRedirect(servletContext.getContextPath() + "/my");
         } catch (IncorrectSignInDataException ex) {
-            request.setAttribute("email", email);
-            request.setAttribute("message", "Неверный адрес электронной почты или пароль.");
-            request.getRequestDispatcher("/WEB-INF/jsp/signin.jsp").forward(request, response);
+            request.setAttribute("email", accountSignInForm.getEmail());
+            request.setAttribute("message", ex.getMessage());
+            request.getRequestDispatcher("/WEB-INF/jsp/signIn.jsp").forward(request, response);
         }
     }
 }

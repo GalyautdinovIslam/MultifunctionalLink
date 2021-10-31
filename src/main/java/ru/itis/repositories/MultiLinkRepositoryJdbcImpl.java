@@ -8,6 +8,8 @@ import ru.itis.models.Account;
 import ru.itis.models.MultiLink;
 
 import javax.sql.DataSource;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.sql.PreparedStatement;
 import java.util.*;
 
@@ -47,20 +49,24 @@ public class MultiLinkRepositoryJdbcImpl implements MultiLinkRepository {
                         .nickname(resultSet.getString("a.nickname"))
                         .age(resultSet.getInt("a.age"))
                         .createdAt(resultSet.getDate("a.created_at"))
-                        .editedAt(resultSet.getDate("a.edited_at"))
                         .build();
                 accounts.put(account.getId(), account);
             }
 
-            MultiLink multiLink = MultiLink.builder()
-                    .id(resultSet.getLong("m.id"))
-                    .owner(account)
-                    .link(resultSet.getString("m.link"))
-                    .clicks(resultSet.getInt("m.clicks"))
-                    .addedAt(resultSet.getDate("m.added_at"))
-                    .build();
+            MultiLink multiLink;
+            try {
+                multiLink = MultiLink.builder()
+                        .id(resultSet.getLong("m.id"))
+                        .owner(account)
+                        .link(new URI(resultSet.getString("m.link")))
+                        .clicks(resultSet.getInt("m.clicks"))
+                        .addedAt(resultSet.getDate("m.added_at"))
+                        .build();
 
-            multiLinks.add(multiLink);
+                multiLinks.add(multiLink);
+            } catch (URISyntaxException e) {
+                throw new IllegalStateException(e);
+            }
         }
 
         return multiLinks;
@@ -80,7 +86,7 @@ public class MultiLinkRepositoryJdbcImpl implements MultiLinkRepository {
             PreparedStatement preparedStatement = connection.prepareStatement(SQL_CREATE_MULTI, new String[]{"id", "clicks", "added_at"});
 
             preparedStatement.setLong(1, multiLink.getOwner().getId());
-            preparedStatement.setString(2, multiLink.getLink());
+            preparedStatement.setString(2, multiLink.getLink().toString());
 
             return preparedStatement;
         }, keyHolder);

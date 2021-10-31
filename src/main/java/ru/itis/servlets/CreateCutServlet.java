@@ -1,5 +1,7 @@
 package ru.itis.servlets;
 
+import ru.itis.exceptions.BadLinkException;
+import ru.itis.helpers.Messages;
 import ru.itis.models.Account;
 import ru.itis.models.CutLink;
 import ru.itis.services.CutLinkService;
@@ -12,8 +14,9 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 @WebServlet("/create/cut")
 public class CreateCutServlet extends HttpServlet {
@@ -31,28 +34,40 @@ public class CreateCutServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        if(securityService.isAuth(request)){
+        if (securityService.isAuth(request)) {
             request.getRequestDispatcher("/WEB-INF/jsp/createCut.jsp").forward(request, response);
         } else {
-            response.sendRedirect(servletContext.getContextPath() + "/signin");
+            securityService.addMessage(request, Messages.NOT_AUTH.get(), false);
+            response.sendRedirect(servletContext.getContextPath() + "/signIn");
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         String link = request.getParameter("link");
-        Account owner = securityService.getAuthAccount(request);
+        try {
+            cutLinkService.isValid(link);
+            Account owner = securityService.getAuthAccount(request);
 
-        CutLink cutLink = CutLink.builder()
-                .owner(owner)
-                .cut(cutLinkService.generateCut(8))
-                .link(link)
-                .build();
+            try {
+                URI uri = new URI(link);
+                CutLink cutLink = CutLink.builder()
+                        .owner(owner)
+                        .cut(cutLinkService.generateCut())
+                        .link(uri)
+                        .build();
 
-        cutLinkService.createCut(cutLink);
-        owner.getCutLinks().add(cutLink);
+                cutLinkService.createCut(cutLink);
+                owner.getCutLinks().add(cutLink);
+                securityService.updateAuthAccount(request, owner);
 
-        request.getSession().setAttribute("authAccount", owner);
-        response.sendRedirect(servletContext.getContextPath() + "/stats?link=cut&id=" + cutLink.getId());
+                response.sendRedirect(servletContext.getContextPath() + "/stats?link=cut&id=" + cutLink.getId());
+            } catch (URISyntaxException ex) {
+                throw new BadLinkException();
+            }
+        } catch (BadLinkException ex) {
+            request.setAttribute("message", ex.getMessage());
+            request.getRequestDispatcher("/WEB-INF/jsp/createMulti.jsp").forward(request, response);
+        }
     }
 }

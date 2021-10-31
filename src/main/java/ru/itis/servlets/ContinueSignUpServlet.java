@@ -1,5 +1,6 @@
 package ru.itis.servlets;
 
+import ru.itis.helpers.Messages;
 import ru.itis.models.Account;
 import ru.itis.services.AccountService;
 import ru.itis.services.SecurityService;
@@ -14,8 +15,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Optional;
 
-@WebServlet("/profile/*")
-public class ProfileServlet extends HttpServlet {
+@WebServlet("/continueSignUp")
+public class ContinueSignUpServlet extends HttpServlet {
 
     private ServletContext servletContext;
     private SecurityService securityService;
@@ -30,24 +31,26 @@ public class ProfileServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String nickname = request.getRequestURI().replaceAll("/profile/", "");
-        Optional<Account> optionalAccount = accountService.findByNickname(nickname);
+        String code = request.getParameter("r");
 
-        if (!optionalAccount.isPresent()) {
-            request.getRequestDispatcher("/WEB-INF/jsp/profileNotFound.jsp").forward(request, response);
-        } else {
-            Account profile = optionalAccount.get();
-
-            if (securityService.isAuth(request)) {
-                Account auth = securityService.getAuthAccount(request);
-
-                if (auth.getId().equals(profile.getId())) {
-                    response.sendRedirect(servletContext.getContextPath() + "/my");
-                }
-            }
-
-            request.setAttribute("profile", profile);
-            request.getRequestDispatcher("/WEB-INF/jsp/profile.jsp").forward(request, response);
+        if (code == null || code.equals("")) {
+            response.sendRedirect(servletContext.getContextPath());
         }
+
+        Optional<Account> optionalAccount = accountService.checkSignUpCode(code);
+
+        if (optionalAccount.isPresent()) {
+            securityService.logout(request);
+            optionalAccount = accountService.findById(optionalAccount.get().getId());
+            if (optionalAccount.isPresent()) {
+                Account account = optionalAccount.get();
+                accountService.deleteSignUpCode(account.getId());
+                accountService.updateStatus(account.getId());
+                securityService.login(request, account);
+
+                securityService.addMessage(request, Messages.SUCCESSFUL_SIGN_UP.get(), true);
+            }
+        }
+        response.sendRedirect(servletContext.getContextPath());
     }
 }

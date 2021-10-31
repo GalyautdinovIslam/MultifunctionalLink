@@ -6,7 +6,7 @@ import ru.itis.models.CutLink;
 import java.util.List;
 import java.util.Optional;
 
-public interface CutLinkRepository{
+public interface CutLinkRepository {
 
     void createCut(CutLink cutLink);
 

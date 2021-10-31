@@ -1,4 +1,6 @@
 package ru.itis.exceptions;
 
-public class BadEmailAddressException extends Throwable {
+import ru.itis.exceptions.marks.InterfaceSignUpException;
+
+public class BadEmailAddressException extends Throwable implements InterfaceSignUpException {
 }

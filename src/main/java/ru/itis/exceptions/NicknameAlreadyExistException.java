@@ -1,4 +1,6 @@
 package ru.itis.exceptions;
 
-public class NicknameAlreadyExistException extends Throwable {
+import ru.itis.exceptions.marks.InterfaceSignUpException;
+
+public class NicknameAlreadyExistException extends Throwable implements InterfaceSignUpException {
 }

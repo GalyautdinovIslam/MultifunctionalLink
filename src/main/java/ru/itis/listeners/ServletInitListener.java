@@ -2,8 +2,9 @@ package ru.itis.listeners;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import ru.itis.exceptions.UnableToLoadPropertiesException;
+import ru.itis.helpers.*;
 import ru.itis.repositories.*;
+import ru.itis.services.*;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
@@ -23,7 +24,7 @@ public class ServletInitListener implements ServletContextListener {
         try {
             properties.load(servletContext.getResourceAsStream("/WEB-INF/properties/application.properties"));
         } catch (IOException ex) {
-            throw new UnableToLoadPropertiesException();
+            throw new IllegalStateException(ex);
         }
 
         HikariConfig hikariConfig = new HikariConfig();
@@ -38,8 +39,23 @@ public class ServletInitListener implements ServletContextListener {
         AccountRepository accountRepository = new AccountRepositoryJdbcImpl(hikariDataSource);
         CutLinkRepository cutLinkRepository = new CutLinkRepositoryJdbcImpl(hikariDataSource);
         MultiLinkRepository multiLinkRepository = new MultiLinkRepositoryJdbcImpl(hikariDataSource);
+        SecurityRepository securityRepository = new SecurityRepositoryJdbcImpl(hikariDataSource);
 
+        CodeGenerator codeGenerator = new CodeGeneratorImpl();
+        EncryptHelper encryptHelper = new EncryptHelperImpl();
+        ValidateHelper validator = new ValidateHelperImpl();
 
+        AccountService accountService = new AccountServiceImpl(encryptHelper, validator, codeGenerator, securityRepository, accountRepository);
+        CutLinkService cutLinkService = new CutLinkServiceImpl(validator, codeGenerator, cutLinkRepository);
+        MultiLinkService multiLinkService = new MultiLinkServiceImpl(multiLinkRepository, validator);
+        SecurityService securityService = new SecurityServiceImpl(encryptHelper, validator, accountRepository);
+        MailService mailService = new MailServiceImpl();
+
+        servletContext.setAttribute("accountService", accountService);
+        servletContext.setAttribute("cutLinkService", cutLinkService);
+        servletContext.setAttribute("multiLinkService", multiLinkService);
+        servletContext.setAttribute("securityService", securityService);
+        servletContext.setAttribute("mailService", mailService);
     }
 
     @Override

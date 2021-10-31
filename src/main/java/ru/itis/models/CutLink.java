@@ -2,6 +2,7 @@ package ru.itis.models;
 
 import lombok.*;
 
+import java.net.URI;
 import java.util.Date;
 
 @Getter
@@ -13,7 +14,7 @@ public class CutLink {
     private Long id;
     private Account owner;
     private String cut;
-    private String link;
+    private URI link;
     private Integer clicks;
     private Date addedAt;
 }

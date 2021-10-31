@@ -1,5 +1,6 @@
 package ru.itis.servlets;
 
+import ru.itis.helpers.Messages;
 import ru.itis.services.SecurityService;
 
 import javax.servlet.ServletConfig;
@@ -28,7 +29,8 @@ public class StatsServlet extends HttpServlet {
         if (securityService.isAuth(request)) {
             request.getRequestDispatcher("/WEB-INF/jsp/allStats.jsp").forward(request, response);
         } else {
-            response.sendRedirect(servletContext.getContextPath() + "/signin");
+            securityService.addMessage(request, Messages.NOT_AUTH.get(), false);
+            response.sendRedirect(servletContext.getContextPath() + "/signIn");
         }
     }
 }

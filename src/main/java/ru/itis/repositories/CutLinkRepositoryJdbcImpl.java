@@ -8,6 +8,8 @@ import ru.itis.models.Account;
 import ru.itis.models.CutLink;
 
 import javax.sql.DataSource;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.sql.PreparedStatement;
 import java.util.*;
 
@@ -50,21 +52,25 @@ public class CutLinkRepositoryJdbcImpl implements CutLinkRepository {
                         .nickname(resultSet.getString("a.nickname"))
                         .age(resultSet.getInt("a.age"))
                         .createdAt(resultSet.getDate("a.created_at"))
-                        .editedAt(resultSet.getDate("a.edited_at"))
                         .build();
                 accounts.put(account.getId(), account);
             }
 
-            CutLink cutLink = CutLink.builder()
-                    .id(resultSet.getLong("c.id"))
-                    .owner(account)
-                    .cut(resultSet.getString("c.cut"))
-                    .link(resultSet.getString("c.link"))
-                    .clicks(resultSet.getInt("c.clicks"))
-                    .addedAt(resultSet.getDate("c.added_at"))
-                    .build();
+            CutLink cutLink;
+            try {
+                cutLink = CutLink.builder()
+                        .id(resultSet.getLong("c.id"))
+                        .owner(account)
+                        .cut(resultSet.getString("c.cut"))
+                        .link(new URI(resultSet.getString("c.link")))
+                        .clicks(resultSet.getInt("c.clicks"))
+                        .addedAt(resultSet.getDate("c.added_at"))
+                        .build();
 
-            cutLinks.add(cutLink);
+                cutLinks.add(cutLink);
+            } catch (URISyntaxException e) {
+                throw new IllegalStateException(e);
+            }
         }
 
         return cutLinks;
@@ -85,7 +91,7 @@ public class CutLinkRepositoryJdbcImpl implements CutLinkRepository {
 
             preparedStatement.setLong(1, cutLink.getOwner().getId());
             preparedStatement.setString(2, cutLink.getCut());
-            preparedStatement.setString(3, cutLink.getLink());
+            preparedStatement.setString(3, cutLink.getLink().toString());
 
             return preparedStatement;
         }, keyHolder);

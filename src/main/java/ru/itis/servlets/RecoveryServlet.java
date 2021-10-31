@@ -1,5 +1,6 @@
 package ru.itis.servlets;
 
+import ru.itis.helpers.Messages;
 import ru.itis.models.Account;
 import ru.itis.services.AccountService;
 import ru.itis.services.MailService;
@@ -33,29 +34,34 @@ public class RecoveryServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        securityService.logout(request);
-        request.getRequestDispatcher("WEB-INF/jsp/recovery.jsp").forward(request, response);
+        if (!securityService.isAuth(request)) {
+            request.getRequestDispatcher("WEB-INF/jsp/recovery.jsp").forward(request, response);
+        } else {
+            securityService.addMessage(request, Messages.ALREADY_AUTH.get(), false);
+            response.sendRedirect(servletContext.getContextPath());
+        }
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String input = request.getParameter("emailOrNickname");
         boolean isEmail = input.contains("@");
         Optional<Account> optionalAccount;
 
-        if(isEmail){
+        if (isEmail) {
             optionalAccount = accountService.findByEmail(input);
         } else {
             optionalAccount = accountService.findByNickname(input);
         }
 
-        if(optionalAccount.isPresent()){
+        if (optionalAccount.isPresent()) {
             Account account = optionalAccount.get();
-            String recoveryCode = securityService.generateRecoveryCode(account);
-            String pathForMail = servletContext.getContextPath() + "/newpassword?r=" + recoveryCode;
+            String recoveryCode = accountService.generateRecoveryCode(account.getEmail());
+            String pathForMail = servletContext.getContextPath() + "/newPassword?r=" + recoveryCode;
             mailService.sendRecoveryMessage(account.getEmail(), pathForMail);
         }
 
-        // TODO: проверьте свою почту
+        securityService.addMessage(request, Messages.CHECK_EMAIL_FOR_RECOVERY.get(), true);
+        response.sendRedirect(servletContext.getContextPath());
     }
 }
