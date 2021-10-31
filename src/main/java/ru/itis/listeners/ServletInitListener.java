@@ -6,6 +6,9 @@ import ru.itis.helpers.*;
 import ru.itis.repositories.*;
 import ru.itis.services.*;
 
+import javax.mail.Authenticator;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -41,6 +44,19 @@ public class ServletInitListener implements ServletContextListener {
         MultiLinkRepository multiLinkRepository = new MultiLinkRepositoryJdbcImpl(hikariDataSource);
         SecurityRepository securityRepository = new SecurityRepositoryJdbcImpl(hikariDataSource);
 
+        Properties mailProperties = new Properties();
+        mailProperties.put("mail.smtp.auth", properties.getProperty("mail.smtp.auth"));
+        mailProperties.put("mail.smtp.starttls.enable", properties.getProperty("mail.smtp.starttls.enable"));
+        mailProperties.put("mail.smtp.host", properties.getProperty("mail.smtp.host"));
+        mailProperties.put("mail.smtp.port", properties.getProperty("mail.smtp.port"));
+
+        Session session = Session.getInstance(mailProperties, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(properties.getProperty("mail.username"), properties.getProperty("mail.password"));
+            }
+        });
+
         CodeGenerator codeGenerator = new CodeGeneratorImpl();
         EncryptHelper encryptHelper = new EncryptHelperImpl();
         ValidateHelper validator = new ValidateHelperImpl();
@@ -49,7 +65,7 @@ public class ServletInitListener implements ServletContextListener {
         CutLinkService cutLinkService = new CutLinkServiceImpl(validator, codeGenerator, cutLinkRepository);
         MultiLinkService multiLinkService = new MultiLinkServiceImpl(multiLinkRepository, validator);
         SecurityService securityService = new SecurityServiceImpl(encryptHelper, validator, accountRepository);
-        MailService mailService = new MailServiceImpl();
+        MailService mailService = new MailServiceImpl(session, properties.getProperty("mail.username"));
 
         servletContext.setAttribute("accountService", accountService);
         servletContext.setAttribute("cutLinkService", cutLinkService);
