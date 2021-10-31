@@ -67,7 +67,7 @@ public class CreateCutServlet extends HttpServlet {
             }
         } catch (BadLinkException ex) {
             request.setAttribute("message", ex.getMessage());
-            request.getRequestDispatcher("/WEB-INF/jsp/createMulti.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/jsp/createСut.jsp").forward(request, response);
         }
     }
 }
