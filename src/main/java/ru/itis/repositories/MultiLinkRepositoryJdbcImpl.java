@@ -16,7 +16,7 @@ import java.util.*;
 public class MultiLinkRepositoryJdbcImpl implements MultiLinkRepository {
 
     //language=SQL
-    private final String SQL_CREATE_MULTI = "insert into multilink (owner_id, link) values (?, ?)";
+    private final String SQL_CREATE_MULTI = "insert into multilink (owner_id, multi_name,link) values (?, ?, ?)";
 
     //language=SQL
     private final String SQL_DELETE_MULTI_BY_ID = "delete from multilink where id = ?";
@@ -25,13 +25,19 @@ public class MultiLinkRepositoryJdbcImpl implements MultiLinkRepository {
     private final String SQL_DELETE_ACCOUNT_MULTI = "delete from multilink where owner_id = ?";
 
     //language=SQL
-    private final String SQL_FIND_BY_ID = "select * from multilink m left join account a on a.id = m.owner_id where m.id = ?";
+    private final String SQL_UPDATE_CLICKS = "update multilink set clicks = ? where id = ?";
 
     //language=SQL
-    private final String SQL_FIND_BY_ACCOUNT = "select * from multilink m left join account a on a.id = m.owner_id where a.id = ?";
+    private final String SQL_FIND_BY_ACCOUNT_AND_NAME = "select m.id as m_id, * from multilink m left join account a on a.id = m.owner_id where a.id = ? and m.multi_name = ?";
 
     //language=SQL
-    private final String SQL_FIND_ALL = "select * from multilink m left join account a on a.id = m.owner_id";
+    private final String SQL_FIND_BY_ID = "select m.id as m_id, * from multilink m left join account a on a.id = m.owner_id where m.id = ?";
+
+    //language=SQL
+    private final String SQL_FIND_BY_ACCOUNT = "select m.id as m_id, * from multilink m left join account a on a.id = m.owner_id where a.id = ?";
+
+    //language=SQL
+    private final String SQL_FIND_ALL = "select m.id as m_id, * from multilink m left join account a on a.id = m.owner_id";
 
     private final ResultSetExtractor<List<MultiLink>> rse = resultSet -> {
         List<MultiLink> multiLinks = new ArrayList<>();
@@ -39,16 +45,20 @@ public class MultiLinkRepositoryJdbcImpl implements MultiLinkRepository {
 
         while (resultSet.next()) {
             Account account;
-            if (accounts.containsKey(resultSet.getLong("a.id"))) {
-                account = accounts.get(resultSet.getLong("a.id"));
+            if (accounts.containsKey(resultSet.getLong("id"))) {
+                account = accounts.get(resultSet.getLong("id"));
             } else {
                 account = Account.builder()
-                        .id(resultSet.getLong("a.id"))
-                        .email(resultSet.getString("a.email"))
-                        .password(resultSet.getString("a.password"))
-                        .nickname(resultSet.getString("a.nickname"))
-                        .age(resultSet.getInt("a.age"))
-                        .createdAt(resultSet.getDate("a.created_at"))
+                        .id(resultSet.getLong("owner_id"))
+                        .email(resultSet.getString("email"))
+                        .password(resultSet.getString("password"))
+                        .nickname(resultSet.getString("nickname"))
+                        .age(resultSet.getInt("age"))
+                        .createdAt(resultSet.getDate("created_at"))
+                        .multiLinks(new HashSet<>())
+                        .cutLinks(new HashSet<>())
+                        .subscribers(new HashSet<>())
+                        .subscriptions(new HashSet<>())
                         .build();
                 accounts.put(account.getId(), account);
             }
@@ -56,14 +66,18 @@ public class MultiLinkRepositoryJdbcImpl implements MultiLinkRepository {
             MultiLink multiLink;
             try {
                 multiLink = MultiLink.builder()
-                        .id(resultSet.getLong("m.id"))
+                        .id(resultSet.getLong("m_id"))
                         .owner(account)
-                        .link(new URI(resultSet.getString("m.link")))
-                        .clicks(resultSet.getInt("m.clicks"))
-                        .addedAt(resultSet.getDate("m.added_at"))
+                        .name(resultSet.getString("multi_name"))
+                        .clicks(resultSet.getInt("clicks"))
+                        .addedAt(resultSet.getDate("added_at"))
                         .build();
 
-                multiLinks.add(multiLink);
+                if(resultSet.getString("link") != null) {
+                    multiLink.setLink(new URI(resultSet.getString("link")));
+                }
+
+                if(multiLink.getName() != null) multiLinks.add(multiLink);
             } catch (URISyntaxException e) {
                 throw new IllegalStateException(e);
             }
@@ -86,7 +100,8 @@ public class MultiLinkRepositoryJdbcImpl implements MultiLinkRepository {
             PreparedStatement preparedStatement = connection.prepareStatement(SQL_CREATE_MULTI, new String[]{"id", "clicks", "added_at"});
 
             preparedStatement.setLong(1, multiLink.getOwner().getId());
-            preparedStatement.setString(2, multiLink.getLink().toString());
+            preparedStatement.setString(2, multiLink.getName());
+            preparedStatement.setString(3, multiLink.getLink().toString());
 
             return preparedStatement;
         }, keyHolder);
@@ -103,7 +118,7 @@ public class MultiLinkRepositoryJdbcImpl implements MultiLinkRepository {
     }
 
     @Override
-    public void deleteMultiById(MultiLink multiLink) {
+    public void deleteMulti(MultiLink multiLink) {
         jdbcTemplate.update(connection -> {
             PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_MULTI_BY_ID);
 
@@ -122,6 +137,26 @@ public class MultiLinkRepositoryJdbcImpl implements MultiLinkRepository {
 
             return preparedStatement;
         });
+    }
+
+    @Override
+    public void updateClicks(MultiLink multiLink) {
+        jdbcTemplate.update(connection -> {
+            PreparedStatement preparedStatement = connection.prepareStatement(SQL_UPDATE_CLICKS);
+
+            preparedStatement.setInt(1, multiLink.getClicks() + 1);
+            preparedStatement.setLong(2, multiLink.getId());
+
+            return preparedStatement;
+        });
+    }
+
+    @Override
+    public Optional<MultiLink> findByAccountAndName(Account account, String name) {
+        List<MultiLink> multiLinks = jdbcTemplate.query(SQL_FIND_BY_ACCOUNT_AND_NAME, rse, account.getId(), name);
+        if (multiLinks.size() > 1) throw new IllegalStateException();
+        else if (multiLinks.size() == 1) return Optional.of(multiLinks.get(0));
+        else return Optional.empty();
     }
 
     @Override

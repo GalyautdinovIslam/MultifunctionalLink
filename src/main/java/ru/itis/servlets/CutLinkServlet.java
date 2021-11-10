@@ -16,23 +16,26 @@ import java.util.Optional;
 @WebServlet("/c/*")
 public class CutLinkServlet extends HttpServlet {
 
+    private ServletContext servletContext;
     private CutLinkService cutLinkService;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        ServletContext servletContext = config.getServletContext();
+        servletContext = config.getServletContext();
         cutLinkService = (CutLinkService) servletContext.getAttribute("cutLinkService");
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String cut = request.getRequestURI().replaceAll("/c/", "");
+        String cut = request.getRequestURI().replaceAll(servletContext.getContextPath() + "/c/", "");
         Optional<CutLink> optionalCutLink = cutLinkService.findByCut(cut);
         if (optionalCutLink.isPresent()) {
             CutLink cutLink = optionalCutLink.get();
+            cutLinkService.visit(cutLink);
             request.setAttribute("cutLink", cutLink);
             request.getRequestDispatcher("/WEB-INF/jsp/cut.jsp").forward(request, response);
         } else {
+            response.setStatus(404);
             request.getRequestDispatcher("/WEB-INF/jsp/cutNotFound.jsp").forward(request, response);
         }
     }

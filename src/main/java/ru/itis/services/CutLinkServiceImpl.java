@@ -3,6 +3,7 @@ package ru.itis.services;
 import ru.itis.exceptions.BadLinkException;
 import ru.itis.helpers.CodeGenerator;
 import ru.itis.helpers.ValidateHelper;
+import ru.itis.models.Account;
 import ru.itis.models.CutLink;
 import ru.itis.repositories.CutLinkRepository;
 
@@ -33,6 +34,21 @@ public class CutLinkServiceImpl implements CutLinkService {
                 return toValid;
             }
         }
+    }
+
+    @Override
+    public void deleteCut(CutLink cutLink) {
+        cutLinkRepository.deleteCut(cutLink);
+    }
+
+    @Override
+    public void deleteAllCutsByAccount(Account account) {
+        cutLinkRepository.deleteAllCutByAccount(account);
+    }
+
+    @Override
+    public void visit(CutLink cutLink) {
+        cutLinkRepository.updateClicks(cutLink);
     }
 
     @Override

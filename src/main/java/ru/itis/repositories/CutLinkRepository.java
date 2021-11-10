@@ -10,9 +10,11 @@ public interface CutLinkRepository {
 
     void createCut(CutLink cutLink);
 
-    void deleteCutById(CutLink cutLink);
+    void deleteCut(CutLink cutLink);
 
     void deleteAllCutByAccount(Account account);
+
+    void updateClicks(CutLink cutLink);
 
     Optional<CutLink> findById(Long id);
 

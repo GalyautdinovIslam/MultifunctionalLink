@@ -7,7 +7,7 @@ import ru.itis.models.Account;
 import java.util.List;
 import java.util.Optional;
 
-public interface AccountRepository{
+public interface AccountRepository extends CrudRepository<Account>{
 
     void createAccount(Account account);
 
@@ -26,8 +26,4 @@ public interface AccountRepository{
     Optional<Account> findByEmail(String email);
 
     Optional<Account> findByNickname(String nickname);
-
-    Optional<Account> findById(Long id);
-
-    List<Account> findAll();
 }

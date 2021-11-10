@@ -1,6 +1,7 @@
 package ru.itis.servlets;
 
 import ru.itis.helpers.Messages;
+import ru.itis.helpers.NoticeHelper;
 import ru.itis.services.SecurityService;
 
 import javax.servlet.ServletConfig;
@@ -17,19 +18,22 @@ public class MyProfileServlet extends HttpServlet {
 
     private ServletContext servletContext;
     private SecurityService securityService;
+    private NoticeHelper noticeHelper;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         servletContext = config.getServletContext();
         securityService = (SecurityService) servletContext.getAttribute("securityService");
+        noticeHelper = (NoticeHelper) servletContext.getAttribute("noticeHelper");
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         if (securityService.isAuth(request)) {
+            request.setAttribute("profile", securityService.getAuthAccount(request));
             request.getRequestDispatcher("/WEB-INF/jsp/myProfile.jsp").forward(request, response);
         } else {
-            securityService.addMessage(request, Messages.NOT_AUTH.get(), false);
+            noticeHelper.addMessage(request, Messages.NOT_AUTH.get(), false);
             response.sendRedirect(servletContext.getContextPath() + "/signIn");
         }
     }

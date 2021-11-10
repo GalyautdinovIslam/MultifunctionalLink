@@ -10,9 +10,13 @@ public interface MultiLinkRepository {
 
     void createMulti(MultiLink multiLink);
 
-    void deleteMultiById(MultiLink multiLink);
+    void deleteMulti(MultiLink multiLink);
 
     void deleteAllMultiByAccount(Account account);
+
+    void updateClicks(MultiLink multiLink);
+
+    Optional<MultiLink> findByAccountAndName(Account account, String name);
 
     Optional<MultiLink> findById(Long id);
 

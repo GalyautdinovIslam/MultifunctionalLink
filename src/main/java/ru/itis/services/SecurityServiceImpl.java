@@ -49,16 +49,6 @@ public class SecurityServiceImpl implements SecurityService {
     }
 
     @Override
-    public void addMessage(HttpServletRequest request, String message, boolean type) {
-        HttpSession session = request.getSession();
-        if (session.getAttribute("messageMap") == null) {
-            session.setAttribute("messageMap", new HashMap<String, Boolean>());
-        }
-        Map<String, Boolean> map = (Map<String, Boolean>) session.getAttribute("messageMap");
-        map.put(message, type);
-    }
-
-    @Override
     public void signup(HttpServletRequest request, AccountSignUpForm accountSignUpForm, List<InterfaceSignUpException> exceptions) throws EmailAlreadyExistException, SignUpException {
         String email = accountSignUpForm.getEmail();
         String password = accountSignUpForm.getPassword();

@@ -4,6 +4,7 @@ import lombok.*;
 
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Getter
@@ -27,5 +28,21 @@ public class Account {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Account)) return false;
+        Account account = (Account) o;
+        return this.getId().equals(account.getId()) &&
+                this.getEmail().equals(account.getEmail()) &&
+                this.getNickname().equals(account.getNickname()) &&
+                this.getCreatedAt().toString().equals(account.getCreatedAt().toString());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId(), getEmail(), getNickname(), getCreatedAt().toString());
     }
 }

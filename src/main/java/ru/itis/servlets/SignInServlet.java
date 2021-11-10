@@ -3,6 +3,7 @@ package ru.itis.servlets;
 import ru.itis.exceptions.IncorrectSignInDataException;
 import ru.itis.forms.AccountSignInForm;
 import ru.itis.helpers.Messages;
+import ru.itis.helpers.NoticeHelper;
 import ru.itis.services.SecurityService;
 
 import javax.servlet.ServletConfig;
@@ -19,17 +20,19 @@ public class SignInServlet extends HttpServlet {
 
     private ServletContext servletContext;
     private SecurityService securityService;
+    private NoticeHelper noticeHelper;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         servletContext = config.getServletContext();
         securityService = (SecurityService) servletContext.getAttribute("securityService");
+        noticeHelper = (NoticeHelper) servletContext.getAttribute("noticeHelper");
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         if (securityService.isAuth(request)) {
-            securityService.addMessage(request, Messages.ALREADY_AUTH.get(), false);
+            noticeHelper.addMessage(request, Messages.ALREADY_AUTH.get(), false);
             response.sendRedirect(servletContext.getContextPath() + "/my");
         } else {
             request.getRequestDispatcher("/WEB-INF/jsp/signIn.jsp").forward(request, response);

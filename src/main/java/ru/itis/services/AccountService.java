@@ -1,9 +1,6 @@
 package ru.itis.services;
 
-import ru.itis.exceptions.BadNewPasswordException;
-import ru.itis.exceptions.BadOldPasswordException;
-import ru.itis.exceptions.PasswordMismatchException;
-import ru.itis.exceptions.SamePasswordException;
+import ru.itis.exceptions.*;
 import ru.itis.forms.ChangePasswordForm;
 import ru.itis.forms.RecoveryPasswordForm;
 import ru.itis.models.Account;
@@ -30,7 +27,13 @@ public interface AccountService {
     void recoveryPassword(Account account, RecoveryPasswordForm recoveryPasswordForm)
             throws BadNewPasswordException, PasswordMismatchException;
 
+    void subscribe(Account who, Account subTo) throws AlreadySubscribedException;
+
+    void unsubscribe(Account who, Account subTo) throws AlreadyUnsubscribedException;
+
     void updateAge(Account account);
+
+    void deleteAccount(Account account);
 
     Optional<Account> findById(Long id);
 

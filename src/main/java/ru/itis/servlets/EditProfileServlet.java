@@ -2,6 +2,7 @@ package ru.itis.servlets;
 
 import ru.itis.exceptions.BadAgeException;
 import ru.itis.helpers.Messages;
+import ru.itis.helpers.NoticeHelper;
 import ru.itis.helpers.ValidateHelper;
 import ru.itis.models.Account;
 import ru.itis.services.AccountService;
@@ -23,6 +24,7 @@ public class EditProfileServlet extends HttpServlet {
     private SecurityService securityService;
     private AccountService accountService;
     private ValidateHelper validator;
+    private NoticeHelper noticeHelper;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -30,6 +32,7 @@ public class EditProfileServlet extends HttpServlet {
         securityService = (SecurityService) servletContext.getAttribute("securityService");
         accountService = (AccountService) servletContext.getAttribute("accountService");
         validator = (ValidateHelper) servletContext.getAttribute("validator");
+        noticeHelper = (NoticeHelper) servletContext.getAttribute("noticeHelper");
     }
 
     @Override
@@ -37,7 +40,7 @@ public class EditProfileServlet extends HttpServlet {
         if (securityService.isAuth(request)) {
             request.getRequestDispatcher("/WEB-INF/jsp/edit.jsp").forward(request, response);
         } else {
-            securityService.addMessage(request, Messages.NOT_AUTH.get(), false);
+            noticeHelper.addMessage(request, Messages.NOT_AUTH.get(), false);
             response.sendRedirect(servletContext.getContextPath() + "/signIn");
         }
     }
@@ -45,13 +48,7 @@ public class EditProfileServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
-            int age;
-
-            try {
-                age = Integer.parseInt(request.getParameter("age"));
-            } catch (NumberFormatException ex) {
-                throw new BadAgeException();
-            }
+            Integer age = Integer.parseInt(request.getParameter("age"));
 
             validator.checkAge(age);
 
@@ -60,9 +57,10 @@ public class EditProfileServlet extends HttpServlet {
             account.setAge(age);
             accountService.updateAge(account);
 
-            securityService.addMessage(request, Messages.SUCCESSFUL_CHANGE_AGE.get(), true);
+            noticeHelper.addMessage(request, Messages.SUCCESSFUL_CHANGE_AGE.get(), true);
             response.sendRedirect(servletContext.getContextPath() + "/edit");
-        } catch (BadAgeException ex) {
+
+        } catch (NumberFormatException | BadAgeException ex) {
             request.setAttribute("age", request.getParameter("age"));
             request.setAttribute("message", ex.getMessage());
             request.getRequestDispatcher("/WEB-INF/jsp/edit.jsp").forward(request, response);

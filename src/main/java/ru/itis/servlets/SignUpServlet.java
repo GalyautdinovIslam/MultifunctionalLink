@@ -5,6 +5,7 @@ import ru.itis.exceptions.SignUpException;
 import ru.itis.exceptions.marks.InterfaceSignUpException;
 import ru.itis.forms.AccountSignUpForm;
 import ru.itis.helpers.Messages;
+import ru.itis.helpers.NoticeHelper;
 import ru.itis.models.Account;
 import ru.itis.services.AccountService;
 import ru.itis.services.MailService;
@@ -29,6 +30,7 @@ public class SignUpServlet extends HttpServlet {
     private SecurityService securityService;
     private AccountService accountService;
     private MailService mailService;
+    private NoticeHelper noticeHelper;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -36,12 +38,13 @@ public class SignUpServlet extends HttpServlet {
         securityService = (SecurityService) servletContext.getAttribute("securityService");
         accountService = (AccountService) servletContext.getAttribute("accountService");
         mailService = (MailService) servletContext.getAttribute("mailService");
+        noticeHelper = (NoticeHelper) servletContext.getAttribute("noticeHelper");
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         if (securityService.isAuth(request)) {
-            securityService.addMessage(request, Messages.ALREADY_AUTH.get(), false);
+            noticeHelper.addMessage(request, Messages.ALREADY_AUTH.get(), false);
             response.sendRedirect(servletContext.getContextPath() + "/my");
         } else {
             request.getRequestDispatcher("/WEB-INF/jsp/signUp.jsp").forward(request, response);
@@ -65,17 +68,16 @@ public class SignUpServlet extends HttpServlet {
             Account account = (Account) request.getAttribute("justSignUp");
 
             String code = accountService.generateSignUpCode(account);
-            String pathForMail = servletContext.getContextPath() + "/continueSignUp?r=" + code;
-            mailService.sendSuccessfulSignUpMessage(accountSignUpForm.getEmail(), pathForMail);
-
-            securityService.addMessage(request, Messages.JUST_SIGN_UP.get(), true);
+            String pathForMail = request.getRequestURL().toString().replaceAll("/signU.+", "/continueSignUp?r=" + code);
+            new Thread(() -> mailService.sendSuccessfulSignUpMessage(accountSignUpForm.getEmail(), pathForMail)).start();
+            noticeHelper.addMessage(request, Messages.JUST_SIGN_UP.get(), true);
             response.sendRedirect(servletContext.getContextPath());
+
         } catch (EmailAlreadyExistException ex) {
             String recoveryCode = accountService.generateRecoveryCode(accountSignUpForm.getEmail());
-            String pathForMail = servletContext.getContextPath() + "/newPassword?r=" + recoveryCode;
-            mailService.sendUnsuccessfulSignUpMessage(accountSignUpForm.getEmail(), pathForMail);
-
-            securityService.addMessage(request, Messages.JUST_SIGN_UP.get(), true);
+            String pathForMail = request.getRequestURL().toString().replaceAll("/signU.+", "/newPassword?r=" + recoveryCode);
+            new Thread(() -> mailService.sendUnsuccessfulSignUpMessage(accountSignUpForm.getEmail(), pathForMail)).start();
+            noticeHelper.addMessage(request, Messages.JUST_SIGN_UP.get(), true);
             response.sendRedirect(servletContext.getContextPath());
         } catch (SignUpException ex) {
             request.setAttribute("email", accountSignUpForm.getEmail());

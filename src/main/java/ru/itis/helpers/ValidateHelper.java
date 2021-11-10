@@ -15,4 +15,6 @@ public interface ValidateHelper {
     void checkRePassword(String password, String rePassword) throws PasswordMismatchException;
 
     void checkLink(String link) throws BadLinkException;
+
+    void checkMultiName(String name) throws BadMultiNameException;
 }

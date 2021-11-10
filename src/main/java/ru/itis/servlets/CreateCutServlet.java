@@ -2,6 +2,7 @@ package ru.itis.servlets;
 
 import ru.itis.exceptions.BadLinkException;
 import ru.itis.helpers.Messages;
+import ru.itis.helpers.NoticeHelper;
 import ru.itis.models.Account;
 import ru.itis.models.CutLink;
 import ru.itis.services.CutLinkService;
@@ -24,12 +25,14 @@ public class CreateCutServlet extends HttpServlet {
     private ServletContext servletContext;
     private SecurityService securityService;
     private CutLinkService cutLinkService;
+    private NoticeHelper noticeHelper;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         servletContext = config.getServletContext();
         securityService = (SecurityService) servletContext.getAttribute("securityService");
         cutLinkService = (CutLinkService) servletContext.getAttribute("cutLinkService");
+        noticeHelper = (NoticeHelper) servletContext.getAttribute("noticeHelper");
     }
 
     @Override
@@ -37,7 +40,7 @@ public class CreateCutServlet extends HttpServlet {
         if (securityService.isAuth(request)) {
             request.getRequestDispatcher("/WEB-INF/jsp/createCut.jsp").forward(request, response);
         } else {
-            securityService.addMessage(request, Messages.NOT_AUTH.get(), false);
+            noticeHelper.addMessage(request, Messages.NOT_AUTH.get(), false);
             response.sendRedirect(servletContext.getContextPath() + "/signIn");
         }
     }
@@ -61,7 +64,7 @@ public class CreateCutServlet extends HttpServlet {
                 owner.getCutLinks().add(cutLink);
                 securityService.updateAuthAccount(request, owner);
 
-                response.sendRedirect(servletContext.getContextPath() + "/stats?link=cut&id=" + cutLink.getId());
+                response.sendRedirect(servletContext.getContextPath() + "/stats/cut?cut=" + cutLink.getCut());
             } catch (URISyntaxException ex) {
                 throw new BadLinkException();
             }

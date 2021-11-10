@@ -23,12 +23,14 @@ create table cutlink
 
 create table multilink
 (
-    id       bigserial primary key,
-    owner_id bigint    not null,
-    link     text      not null,
-    clicks   integer   not null default 0,
-    added_at timestamp not null default current_timestamp,
+    id         bigserial primary key,
+    owner_id   bigint      not null,
+    multi_name varchar(64) not null,
+    link       text        not null,
+    clicks     integer     not null default 0,
+    added_at   timestamp   not null default current_timestamp,
     foreign key (owner_id) references account (id),
+    constraint unique_name unique (owner_id, multi_name),
     check ( length(link) <= 2048 )
 );
 

@@ -4,6 +4,7 @@ import ru.itis.exceptions.BadNewPasswordException;
 import ru.itis.exceptions.PasswordMismatchException;
 import ru.itis.forms.RecoveryPasswordForm;
 import ru.itis.helpers.Messages;
+import ru.itis.helpers.NoticeHelper;
 import ru.itis.models.Account;
 import ru.itis.services.AccountService;
 import ru.itis.services.SecurityService;
@@ -24,12 +25,14 @@ public class NewPasswordServlet extends HttpServlet {
     private ServletContext servletContext;
     private SecurityService securityService;
     private AccountService accountService;
+    private NoticeHelper noticeHelper;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         servletContext = config.getServletContext();
         securityService = (SecurityService) servletContext.getAttribute("securityService");
         accountService = (AccountService) servletContext.getAttribute("accountService");
+        noticeHelper = (NoticeHelper) servletContext.getAttribute("noticeHelper");
     }
 
     @Override
@@ -45,7 +48,7 @@ public class NewPasswordServlet extends HttpServlet {
         if (optionalAccount.isPresent()) {
             securityService.logout(request);
             Account account = optionalAccount.get();
-            request.setAttribute("recoveryAccount", account);
+            request.getSession().setAttribute("recoveryAccount", account);
             request.getRequestDispatcher("WEB-INF/jsp/newPassword.jsp").forward(request, response);
         } else {
             response.sendRedirect(servletContext.getContextPath());
@@ -59,15 +62,19 @@ public class NewPasswordServlet extends HttpServlet {
                 .reNewPassword(request.getParameter("reNewPassword"))
                 .build();
 
-        Account account = (Account) request.getAttribute("recoveryAccount");
+        Account account = (Account) request.getSession().getAttribute("recoveryAccount");
+        request.getSession().removeAttribute("recoveryAccount");
         Optional<Account> optionalAccount = accountService.findById(account.getId());
 
         if (optionalAccount.isPresent()) {
             account = optionalAccount.get();
             try {
                 accountService.recoveryPassword(account, recoveryPasswordForm);
-                securityService.addMessage(request, Messages.SUCCESSFUL_CHANGE_PASSWORD.get(), true);
-                response.sendRedirect(servletContext.getContextPath() + "/signIn");
+                accountService.deleteSignUpCode(account.getId());
+                accountService.updateStatus(account.getId());
+                securityService.login(request, account);
+                noticeHelper.addMessage(request, Messages.SUCCESSFUL_CHANGE_PASSWORD.get(), true);
+                response.sendRedirect(servletContext.getContextPath() + "/my");
             } catch (BadNewPasswordException | PasswordMismatchException ex) {
                 request.setAttribute("message", ex.getMessage());
                 request.getRequestDispatcher("WEB-INF/jsp/newPassword.jsp").forward(request, response);

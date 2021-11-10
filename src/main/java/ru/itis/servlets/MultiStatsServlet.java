@@ -2,6 +2,8 @@ package ru.itis.servlets;
 
 import ru.itis.exceptions.BadMultiIdException;
 import ru.itis.helpers.Messages;
+import ru.itis.helpers.NoticeHelper;
+import ru.itis.models.Account;
 import ru.itis.models.MultiLink;
 import ru.itis.services.MultiLinkService;
 import ru.itis.services.SecurityService;
@@ -23,24 +25,24 @@ public class MultiStatsServlet extends HttpServlet {
     private ServletContext servletContext;
     private SecurityService securityService;
     private MultiLinkService multiLinkService;
+    private NoticeHelper noticeHelper;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         servletContext = config.getServletContext();
         securityService = (SecurityService) servletContext.getAttribute("securityService");
         multiLinkService = (MultiLinkService) servletContext.getAttribute("multiLinkService");
+        noticeHelper = (NoticeHelper) servletContext.getAttribute("noticeHelper");
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         if (securityService.isAuth(request)) {
-            Set<MultiLink> multiLinks = securityService.getAuthAccount(request).getMultiLinks();
-            String idString = request.getParameter("id");
+            Account account = securityService.getAuthAccount(request);
+            String name = request.getParameter("name");
             try {
-                if (idString != null) {
-                    long id = Long.parseLong(idString);
-
-                    Optional<MultiLink> optionalMultiLink = multiLinkService.findById(id);
+                if (name != null) {
+                    Optional<MultiLink> optionalMultiLink = multiLinkService.findByAccountAndName(account, name);
 
                     if (!optionalMultiLink.isPresent()) {
                         throw new BadMultiIdException();
@@ -48,22 +50,19 @@ public class MultiStatsServlet extends HttpServlet {
 
                     MultiLink multiLink = optionalMultiLink.get();
 
-                    if (!multiLinks.contains(multiLink)) {
-                        throw new BadMultiIdException();
-                    }
-
                     request.setAttribute("multiLink", multiLink);
                     request.getRequestDispatcher("/WEB-INF/jsp/oneMultiStats.jsp").forward(request, response);
                 } else {
+                    request.setAttribute("multiLinks", account.getMultiLinks());
                     request.getRequestDispatcher("/WEB-INF/jsp/allMultiStats.jsp").forward(request, response);
                 }
-            } catch (NumberFormatException | BadMultiIdException ex) {
-                securityService.addMessage(request, Messages.BAD_LINK_ID.get(), false);
+            } catch (BadMultiIdException ex) {
+                noticeHelper.addMessage(request, Messages.BAD_LINK_ID.get(), false);
                 response.sendRedirect(servletContext.getContextPath() + "/stats/multi");
             }
         } else {
-            securityService.addMessage(request, Messages.NOT_AUTH.get(), false);
-            request.getRequestDispatcher("/WEB-INF/jsp/signIn.jsp").forward(request, response);
+            noticeHelper.addMessage(request, Messages.NOT_AUTH.get(), false);
+            response.sendRedirect(servletContext.getContextPath() + "/signIn");
         }
     }
 }

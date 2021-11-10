@@ -5,6 +5,7 @@ import ru.itis.models.Account;
 
 import javax.sql.DataSource;
 import java.sql.PreparedStatement;
+import java.util.HashSet;
 import java.util.Optional;
 
 public class SecurityRepositoryJdbcImpl implements SecurityRepository {
@@ -35,16 +36,20 @@ public class SecurityRepositoryJdbcImpl implements SecurityRepository {
         this.jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
-    private Optional<Account> getAccountByCode(String code) {
-        return jdbcTemplate.query(SQL_FIND_BY_SIGN_UP_CODE, resultSet -> {
+    private Optional<Account> getAccountByCode(String sql, String code) {
+        return jdbcTemplate.query(sql, resultSet -> {
             if (resultSet.next()) {
                 return Optional.of(Account.builder()
-                        .id(resultSet.getLong("a.id"))
-                        .email(resultSet.getString("a.email"))
-                        .password(resultSet.getString("a.password"))
-                        .nickname(resultSet.getString("a.nickname"))
-                        .age(resultSet.getInt("a.age"))
-                        .createdAt(resultSet.getDate("a.created_at"))
+                        .id(resultSet.getLong("id"))
+                        .email(resultSet.getString("email"))
+                        .password(resultSet.getString("password"))
+                        .nickname(resultSet.getString("nickname"))
+                        .age(resultSet.getInt("age"))
+                        .createdAt(resultSet.getDate("created_at"))
+                        .multiLinks(new HashSet<>())
+                        .cutLinks(new HashSet<>())
+                        .subscribers(new HashSet<>())
+                        .subscriptions(new HashSet<>())
                         .build());
             } else {
                 return Optional.empty();
@@ -54,7 +59,7 @@ public class SecurityRepositoryJdbcImpl implements SecurityRepository {
 
     @Override
     public Optional<Account> findByRecoveryCode(String recoveryCode) {
-        return getAccountByCode(recoveryCode);
+        return getAccountByCode(SQL_FIND_BY_RECOVERY_CODE, recoveryCode);
     }
 
     @Override
@@ -82,7 +87,7 @@ public class SecurityRepositoryJdbcImpl implements SecurityRepository {
 
     @Override
     public Optional<Account> findBySignUpCode(String code) {
-        return getAccountByCode(code);
+        return getAccountByCode(SQL_FIND_BY_SIGN_UP_CODE, code);
     }
 
     @Override

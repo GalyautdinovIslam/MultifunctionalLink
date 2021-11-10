@@ -25,16 +25,19 @@ public class CutLinkRepositoryJdbcImpl implements CutLinkRepository {
     private final String SQL_DELETE_ACCOUNT_CUTS = "delete from cutlink where owner_id = ?";
 
     //language=SQL
-    private final String SQL_FIND_BY_ID = "select * from cutlink c left join account a on a.id = c.owner_id where c.id = ?";
+    private final String SQL_UPDATE_CLICKS = "update cutlink set clicks = ? where id = ?";
 
     //language=SQL
-    private final String SQL_FIND_BY_CUT = "select * from cutlink c left join account a on a.id = c.owner_id where c.cut = ?";
+    private final String SQL_FIND_BY_ID = "select c.id as c_id, * from cutlink c left join account a on a.id = c.owner_id where c.id = ?";
 
     //language=SQL
-    private final String SQL_FIND_BY_ACCOUNT = "select  * from cutlink c left join account a on a.id = c.owner_id where a.id = ?";
+    private final String SQL_FIND_BY_CUT = "select c.id as c_id, * from cutlink c left join account a on a.id = c.owner_id where c.cut = ?";
 
     //language=SQL
-    private final String SQL_FIND_ALL = "select  * from cutlink c left join account a on a.id = c.owner_id";
+    private final String SQL_FIND_BY_ACCOUNT = "select c.id as c_id, * from cutlink c left join account a on a.id = c.owner_id where a.id = ?";
+
+    //language=SQL
+    private final String SQL_FIND_ALL = "select c.id as c_id, * from cutlink c left join account a on a.id = c.owner_id";
 
     private final ResultSetExtractor<List<CutLink>> rse = resultSet -> {
         List<CutLink> cutLinks = new ArrayList<>();
@@ -42,16 +45,20 @@ public class CutLinkRepositoryJdbcImpl implements CutLinkRepository {
 
         while (resultSet.next()) {
             Account account;
-            if (accounts.containsKey(resultSet.getLong("a.id"))) {
-                account = accounts.get(resultSet.getLong("a.id"));
+            if (accounts.containsKey(resultSet.getLong("id"))) {
+                account = accounts.get(resultSet.getLong("id"));
             } else {
                 account = Account.builder()
-                        .id(resultSet.getLong("a.id"))
-                        .email(resultSet.getString("a.email"))
-                        .password(resultSet.getString("a.password"))
-                        .nickname(resultSet.getString("a.nickname"))
-                        .age(resultSet.getInt("a.age"))
-                        .createdAt(resultSet.getDate("a.created_at"))
+                        .id(resultSet.getLong("owner_id"))
+                        .email(resultSet.getString("email"))
+                        .password(resultSet.getString("password"))
+                        .nickname(resultSet.getString("nickname"))
+                        .age(resultSet.getInt("age"))
+                        .createdAt(resultSet.getDate("created_at"))
+                        .multiLinks(new HashSet<>())
+                        .cutLinks(new HashSet<>())
+                        .subscribers(new HashSet<>())
+                        .subscriptions(new HashSet<>())
                         .build();
                 accounts.put(account.getId(), account);
             }
@@ -59,15 +66,18 @@ public class CutLinkRepositoryJdbcImpl implements CutLinkRepository {
             CutLink cutLink;
             try {
                 cutLink = CutLink.builder()
-                        .id(resultSet.getLong("c.id"))
+                        .id(resultSet.getLong("c_id"))
                         .owner(account)
-                        .cut(resultSet.getString("c.cut"))
-                        .link(new URI(resultSet.getString("c.link")))
-                        .clicks(resultSet.getInt("c.clicks"))
-                        .addedAt(resultSet.getDate("c.added_at"))
+                        .cut(resultSet.getString("cut"))
+                        .clicks(resultSet.getInt("clicks"))
+                        .addedAt(resultSet.getDate("added_at"))
                         .build();
 
-                cutLinks.add(cutLink);
+                if(resultSet.getString("link") != null) {
+                    cutLink.setLink(new URI(resultSet.getString("link")));
+                }
+
+                if(cutLink.getCut() != null) cutLinks.add(cutLink);
             } catch (URISyntaxException e) {
                 throw new IllegalStateException(e);
             }
@@ -108,7 +118,7 @@ public class CutLinkRepositoryJdbcImpl implements CutLinkRepository {
     }
 
     @Override
-    public void deleteCutById(CutLink cutLink) {
+    public void deleteCut(CutLink cutLink) {
         jdbcTemplate.update(connection -> {
             PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_CUT_BY_ID);
 
@@ -124,6 +134,18 @@ public class CutLinkRepositoryJdbcImpl implements CutLinkRepository {
             PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_ACCOUNT_CUTS);
 
             preparedStatement.setLong(1, account.getId());
+
+            return preparedStatement;
+        });
+    }
+
+    @Override
+    public void updateClicks(CutLink cutLink) {
+        jdbcTemplate.update(connection -> {
+            PreparedStatement preparedStatement = connection.prepareStatement(SQL_UPDATE_CLICKS);
+
+            preparedStatement.setInt(1, cutLink.getClicks() + 1);
+            preparedStatement.setLong(2, cutLink.getId());
 
             return preparedStatement;
         });

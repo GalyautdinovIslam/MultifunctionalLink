@@ -2,6 +2,8 @@ package ru.itis.servlets;
 
 import ru.itis.exceptions.BadCutIdException;
 import ru.itis.helpers.Messages;
+import ru.itis.helpers.NoticeHelper;
+import ru.itis.models.Account;
 import ru.itis.models.CutLink;
 import ru.itis.services.CutLinkService;
 import ru.itis.services.SecurityService;
@@ -23,45 +25,52 @@ public class CutStatsServlet extends HttpServlet {
     private ServletContext servletContext;
     private SecurityService securityService;
     private CutLinkService cutLinkService;
+    private NoticeHelper noticeHelper;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         servletContext = config.getServletContext();
         securityService = (SecurityService) servletContext.getAttribute("securityService");
         cutLinkService = (CutLinkService) servletContext.getAttribute("cutLinkService");
+        noticeHelper = (NoticeHelper) servletContext.getAttribute("noticeHelper");
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         if (securityService.isAuth(request)) {
-            Set<CutLink> cutLinks = securityService.getAuthAccount(request).getCutLinks();
-            String idString = request.getParameter("id");
+            Account account = securityService.getAuthAccount(request);
+            String cut = request.getParameter("cut");
             try {
-                if (idString != null) {
-                    long id = Long.parseLong(idString);
+                if (cut != null) {
+                    Optional<CutLink> optionalCutLink = cutLinkService.findByCut(cut);
 
-                    Optional<CutLink> optionalCutLink = cutLinkService.findById(id);
                     if (!optionalCutLink.isPresent()) {
                         throw new BadCutIdException();
                     }
-                    CutLink cutLink = optionalCutLink.get();
 
-                    if (!cutLinks.contains(cutLink)) {
+                    CutLink cutLink = optionalCutLink.get();
+                    System.out.println(cutLink.getOwner().getId());
+                    System.out.println(account.getId());
+                    if (!cutLink.getOwner().getId().equals(account.getId())) {
+                        System.out.println("test");
                         throw new BadCutIdException();
                     }
 
+                    String linkToCopy = request.getRequestURI().replaceAll("/stats.+", "/c/" + cutLink.getCut());
                     request.setAttribute("cutLink", cutLink);
+                    request.setAttribute("linkToCopy", linkToCopy);
                     request.getRequestDispatcher("/WEB-INF/jsp/oneCutStats.jsp").forward(request, response);
                 } else {
+                    request.setAttribute("cutLinks", account.getCutLinks());
                     request.getRequestDispatcher("/WEB-INF/jsp/allCutStats.jsp").forward(request, response);
                 }
-            } catch (NumberFormatException | BadCutIdException ex) {
-                securityService.addMessage(request, Messages.BAD_LINK_ID.get(), false);
+            } catch (BadCutIdException ex) {
+                noticeHelper.addMessage(request, Messages.BAD_LINK_ID.get(), false);
                 response.sendRedirect(servletContext.getContextPath() + "/stats/cut");
             }
         } else {
-            securityService.addMessage(request, Messages.NOT_AUTH.get(), false);
-            request.getRequestDispatcher("/WEB-INF/jsp/signIn.jsp").forward(request, response);
+            noticeHelper.addMessage(request, Messages.NOT_AUTH.get(), false);
+            response.sendRedirect(servletContext.getContextPath() + "/signIn");
         }
     }
 }

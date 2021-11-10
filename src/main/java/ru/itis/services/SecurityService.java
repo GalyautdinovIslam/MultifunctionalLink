@@ -19,9 +19,8 @@ public interface SecurityService {
 
     void updateAuthAccount(HttpServletRequest request, Account account);
 
-    void addMessage(HttpServletRequest request, String message, boolean type);
-
-    void signup(HttpServletRequest request, AccountSignUpForm accountSignUpForm, List<InterfaceSignUpException> exceptions) throws SignUpException, EmailAlreadyExistException;
+    void signup(HttpServletRequest request, AccountSignUpForm accountSignUpForm, List<InterfaceSignUpException> exceptions)
+            throws SignUpException, EmailAlreadyExistException;
 
     void signIn(HttpServletRequest request, AccountSignInForm accountSignInForm) throws IncorrectSignInDataException;
 

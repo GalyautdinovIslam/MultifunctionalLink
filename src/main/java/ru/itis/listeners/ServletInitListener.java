@@ -38,6 +38,7 @@ public class ServletInitListener implements ServletContextListener {
         hikariConfig.setMaximumPoolSize(Integer.parseInt(properties.getProperty("db.hikari.max-pool-size")));
 
         DataSource hikariDataSource = new HikariDataSource(hikariConfig);
+        servletContext.setAttribute("hikariDataSource", hikariDataSource);
 
         AccountRepository accountRepository = new AccountRepositoryJdbcImpl(hikariDataSource);
         CutLinkRepository cutLinkRepository = new CutLinkRepositoryJdbcImpl(hikariDataSource);
@@ -53,15 +54,18 @@ public class ServletInitListener implements ServletContextListener {
         Session session = Session.getInstance(mailProperties, new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(properties.getProperty("mail.username"), properties.getProperty("mail.password"));
+                return new PasswordAuthentication(properties.getProperty("mail.username"),
+                        properties.getProperty("mail.password"));
             }
         });
 
         CodeGenerator codeGenerator = new CodeGeneratorImpl();
         EncryptHelper encryptHelper = new EncryptHelperImpl();
         ValidateHelper validator = new ValidateHelperImpl();
+        NoticeHelper noticeHelper = new NoticeHelperImpl();
 
-        AccountService accountService = new AccountServiceImpl(encryptHelper, validator, codeGenerator, securityRepository, accountRepository);
+        AccountService accountService = new AccountServiceImpl(encryptHelper, validator, codeGenerator,
+                securityRepository, accountRepository);
         CutLinkService cutLinkService = new CutLinkServiceImpl(validator, codeGenerator, cutLinkRepository);
         MultiLinkService multiLinkService = new MultiLinkServiceImpl(multiLinkRepository, validator);
         SecurityService securityService = new SecurityServiceImpl(encryptHelper, validator, accountRepository);
@@ -72,9 +76,14 @@ public class ServletInitListener implements ServletContextListener {
         servletContext.setAttribute("multiLinkService", multiLinkService);
         servletContext.setAttribute("securityService", securityService);
         servletContext.setAttribute("mailService", mailService);
+        servletContext.setAttribute("noticeHelper", noticeHelper);
+        servletContext.setAttribute("validator", validator);
     }
 
     @Override
     public void contextDestroyed(ServletContextEvent servletContextEvent) {
+        ServletContext servletContext = servletContextEvent.getServletContext();
+        HikariDataSource hikariDataSource = (HikariDataSource) servletContext.getAttribute("hikariDataSource");
+        hikariDataSource.close();
     }
 }

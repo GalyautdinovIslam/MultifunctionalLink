@@ -20,7 +20,9 @@ public class AccountServiceImpl implements AccountService {
     private final SecurityRepository securityRepository;
     private final AccountRepository accountRepository;
 
-    public AccountServiceImpl(EncryptHelper encryptHelper, ValidateHelper validateHelper, CodeGenerator codeGenerator, SecurityRepository securityRepository, AccountRepository accountRepository) {
+    public AccountServiceImpl(EncryptHelper encryptHelper, ValidateHelper validateHelper,
+                              CodeGenerator codeGenerator, SecurityRepository securityRepository,
+                              AccountRepository accountRepository) {
         this.encryptHelper = encryptHelper;
         this.validateHelper = validateHelper;
         this.codeGenerator = codeGenerator;
@@ -126,8 +128,23 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    public void subscribe(Account who, Account subTo) throws AlreadySubscribedException {
+        accountRepository.subscribe(who, subTo);
+    }
+
+    @Override
+    public void unsubscribe(Account who, Account subTo) throws AlreadyUnsubscribedException {
+        accountRepository.unsubscribe(who, subTo);
+    }
+
+    @Override
     public void updateAge(Account account) {
         accountRepository.updateAge(account);
+    }
+
+    @Override
+    public void deleteAccount(Account account) {
+        accountRepository.deleteAccount(account);
     }
 
     @Override

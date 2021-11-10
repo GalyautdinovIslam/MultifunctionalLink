@@ -57,4 +57,10 @@ public class ValidateHelperImpl implements ValidateHelper {
             throw new BadLinkException();
         }
     }
+
+    @Override
+    public void checkMultiName(String name) throws BadMultiNameException {
+        if(name == null || name.length() > 64 || name.replaceAll("[A-Za-zА-Яа-яЁё0-9 ]", "").length() > 0)
+            throw new BadMultiNameException();
+    }
 }

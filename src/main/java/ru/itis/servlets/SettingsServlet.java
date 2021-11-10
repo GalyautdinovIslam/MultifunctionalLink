@@ -6,6 +6,7 @@ import ru.itis.exceptions.PasswordMismatchException;
 import ru.itis.exceptions.SamePasswordException;
 import ru.itis.forms.ChangePasswordForm;
 import ru.itis.helpers.Messages;
+import ru.itis.helpers.NoticeHelper;
 import ru.itis.models.Account;
 import ru.itis.services.AccountService;
 import ru.itis.services.SecurityService;
@@ -25,12 +26,14 @@ public class SettingsServlet extends HttpServlet {
     private ServletContext servletContext;
     private SecurityService securityService;
     private AccountService accountService;
+    private NoticeHelper noticeHelper;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         servletContext = config.getServletContext();
         securityService = (SecurityService) servletContext.getAttribute("securityService");
         accountService = (AccountService) servletContext.getAttribute("accountService");
+        noticeHelper = (NoticeHelper) servletContext.getAttribute("noticeHelper");
     }
 
     @Override
@@ -38,7 +41,7 @@ public class SettingsServlet extends HttpServlet {
         if (securityService.isAuth(request)) {
             request.getRequestDispatcher("/WEB-INF/jsp/settings.jsp").forward(request, response);
         } else {
-            securityService.addMessage(request, Messages.NOT_AUTH.get(), false);
+            noticeHelper.addMessage(request, Messages.NOT_AUTH.get(), false);
             response.sendRedirect(servletContext.getContextPath() + "/signIn");
         }
     }
@@ -56,7 +59,7 @@ public class SettingsServlet extends HttpServlet {
         try {
             accountService.changePassword(account, changePasswordForm);
             securityService.updateAuthAccount(request, account);
-            securityService.addMessage(request, Messages.SUCCESSFUL_CHANGE_PASSWORD.get(), true);
+            noticeHelper.addMessage(request, Messages.SUCCESSFUL_CHANGE_PASSWORD.get(), true);
             response.sendRedirect(servletContext.getContextPath() + "/settings");
         } catch (BadOldPasswordException | BadNewPasswordException | PasswordMismatchException | SamePasswordException ex) {
             request.setAttribute("message", ex.getMessage());

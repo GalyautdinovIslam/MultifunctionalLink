@@ -1,6 +1,7 @@
 package ru.itis.servlets;
 
 import ru.itis.helpers.Messages;
+import ru.itis.helpers.NoticeHelper;
 import ru.itis.models.Account;
 import ru.itis.services.AccountService;
 import ru.itis.services.MailService;
@@ -23,6 +24,7 @@ public class RecoveryServlet extends HttpServlet {
     private SecurityService securityService;
     private MailService mailService;
     private AccountService accountService;
+    private NoticeHelper noticeHelper;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -30,6 +32,7 @@ public class RecoveryServlet extends HttpServlet {
         securityService = (SecurityService) servletContext.getAttribute("securityService");
         accountService = (AccountService) servletContext.getAttribute("accountService");
         mailService = (MailService) servletContext.getAttribute("mailService");
+        noticeHelper = (NoticeHelper) servletContext.getAttribute("noticeHelper");
     }
 
     @Override
@@ -37,7 +40,7 @@ public class RecoveryServlet extends HttpServlet {
         if (!securityService.isAuth(request)) {
             request.getRequestDispatcher("WEB-INF/jsp/recovery.jsp").forward(request, response);
         } else {
-            securityService.addMessage(request, Messages.ALREADY_AUTH.get(), false);
+            noticeHelper.addMessage(request, Messages.ALREADY_AUTH.get(), false);
             response.sendRedirect(servletContext.getContextPath());
         }
     }
@@ -57,11 +60,11 @@ public class RecoveryServlet extends HttpServlet {
         if (optionalAccount.isPresent()) {
             Account account = optionalAccount.get();
             String recoveryCode = accountService.generateRecoveryCode(account.getEmail());
-            String pathForMail = servletContext.getContextPath() + "/newPassword?r=" + recoveryCode;
-            mailService.sendRecoveryMessage(account.getEmail(), pathForMail);
+            String pathForMail = request.getRequestURL().toString().replaceAll("/recover.+", "/newPassword?r=" + recoveryCode);
+            new Thread(() -> mailService.sendRecoveryMessage(account.getEmail(), pathForMail)).start();
         }
 
-        securityService.addMessage(request, Messages.CHECK_EMAIL_FOR_RECOVERY.get(), true);
+        noticeHelper.addMessage(request, Messages.CHECK_EMAIL_FOR_RECOVERY.get(), true);
         response.sendRedirect(servletContext.getContextPath());
     }
 }

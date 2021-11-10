@@ -30,10 +30,11 @@ public class ProfileServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String nickname = request.getRequestURI().replaceAll("/profile/", "");
+        String nickname = request.getRequestURI().replaceAll(servletContext.getContextPath() + "/profile/", "");
         Optional<Account> optionalAccount = accountService.findByNickname(nickname);
 
         if (!optionalAccount.isPresent()) {
+            response.setStatus(404);
             request.getRequestDispatcher("/WEB-INF/jsp/profileNotFound.jsp").forward(request, response);
         } else {
             Account profile = optionalAccount.get();
@@ -43,11 +44,28 @@ public class ProfileServlet extends HttpServlet {
 
                 if (auth.getId().equals(profile.getId())) {
                     response.sendRedirect(servletContext.getContextPath() + "/my");
+                    return;
                 }
+
+                boolean isSub = false;
+                for(Account sub : auth.getSubscriptions()){
+                    if(sub.getId().equals(profile.getId())){
+                        isSub = true;
+                        break;
+                    }
+                }
+
+                request.setAttribute("isSub", isSub);
             }
 
             request.setAttribute("profile", profile);
             request.getRequestDispatcher("/WEB-INF/jsp/profile.jsp").forward(request, response);
         }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String search = request.getParameter("search");
+        response.sendRedirect(servletContext.getContextPath() + "/profile/" + search);
     }
 }
