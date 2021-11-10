@@ -1,11 +1,9 @@
 package ru.itis.repositories;
 
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.ResultSetExtractor;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import ru.itis.models.Account;
 import ru.itis.models.MultiLink;
+import ru.itis.repositories.jdbcTemplate.JdbcTemplate;
+import ru.itis.repositories.jdbcTemplate.ResultSetExtractor;
 
 import javax.sql.DataSource;
 import java.net.URI;
@@ -93,62 +91,25 @@ public class MultiLinkRepositoryJdbcImpl implements MultiLinkRepository {
     }
 
     @Override
-    public void createMulti(MultiLink multiLink) {
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_CREATE_MULTI, new String[]{"id", "clicks", "added_at"});
-
-            preparedStatement.setLong(1, multiLink.getOwner().getId());
-            preparedStatement.setString(2, multiLink.getName());
-            preparedStatement.setString(3, multiLink.getLink().toString());
-
-            return preparedStatement;
-        }, keyHolder);
-
-        Map<String, Object> keys = keyHolder.getKeys();
-
-        Long id = (Long) keys.get("id");
-        Integer clicks = (Integer) keys.get("clicks");
-        Date addedAt = (Date) keys.get("added_at");
-
-        multiLink.setId(id);
-        multiLink.setClicks(clicks);
-        multiLink.setAddedAt(addedAt);
+    public MultiLink createMulti(MultiLink multiLink) {
+        jdbcTemplate.update(SQL_CREATE_MULTI,
+                multiLink.getOwner().getId(), multiLink.getName(), multiLink.getLink().toString());
+        return findByAccountAndName(multiLink.getOwner(), multiLink.getName()).get();
     }
 
     @Override
     public void deleteMulti(MultiLink multiLink) {
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_MULTI_BY_ID);
-
-            preparedStatement.setLong(1, multiLink.getId());
-
-            return preparedStatement;
-        });
+        jdbcTemplate.update(SQL_DELETE_MULTI_BY_ID, multiLink.getId());
     }
 
     @Override
     public void deleteAllMultiByAccount(Account account) {
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_ACCOUNT_MULTI);
-
-            preparedStatement.setLong(1, account.getId());
-
-            return preparedStatement;
-        });
+        jdbcTemplate.update(SQL_DELETE_ACCOUNT_MULTI, account.getId());
     }
 
     @Override
     public void updateClicks(MultiLink multiLink) {
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_UPDATE_CLICKS);
-
-            preparedStatement.setInt(1, multiLink.getClicks() + 1);
-            preparedStatement.setLong(2, multiLink.getId());
-
-            return preparedStatement;
-        });
+        jdbcTemplate.update(SQL_UPDATE_CLICKS, multiLink.getClicks() + 1, multiLink.getId());
     }
 
     @Override

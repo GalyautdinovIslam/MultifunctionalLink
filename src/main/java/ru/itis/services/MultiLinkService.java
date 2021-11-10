@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public interface MultiLinkService {
 
-    void createMulti(MultiLink multiLink);
+    MultiLink createMulti(MultiLink multiLink);
 
     void deleteMulti(MultiLink multiLink);
 

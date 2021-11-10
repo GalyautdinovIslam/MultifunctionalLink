@@ -1,6 +1,7 @@
 package ru.itis.servlets;
 
 import ru.itis.exceptions.AlreadyUnsubscribedException;
+import ru.itis.helpers.NoticeHelper;
 import ru.itis.models.Account;
 import ru.itis.services.AccountService;
 import ru.itis.services.SecurityService;
@@ -21,12 +22,14 @@ public class UnsubscribeServlet extends HttpServlet {
     private ServletContext servletContext;
     private SecurityService securityService;
     private AccountService accountService;
+    private NoticeHelper noticeHelper;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         servletContext = config.getServletContext();
         securityService = (SecurityService) servletContext.getAttribute("securityService");
         accountService = (AccountService) servletContext.getAttribute("accountService");
+        noticeHelper  = (NoticeHelper) servletContext.getAttribute("noticeHelper");
     }
 
     @Override
@@ -46,7 +49,7 @@ public class UnsubscribeServlet extends HttpServlet {
                     accountService.unsubscribe(account, profile);
                     response.sendRedirect(servletContext.getContextPath() + "/profile/" + nickname);
                 } catch (AlreadyUnsubscribedException ex) {
-                    request.setAttribute("message", ex.getMessage());
+                    noticeHelper.addMessage(request, ex.getMessage(), false);
                     request.getRequestDispatcher("/WEB-INF/jsp/profile.jsp").forward(request, response);
                 }
             }

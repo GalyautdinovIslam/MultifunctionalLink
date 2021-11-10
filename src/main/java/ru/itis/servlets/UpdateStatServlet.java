@@ -40,7 +40,8 @@ public class UpdateStatServlet extends HttpServlet {
             if(optionalMultiLink.isPresent()){
                 MultiLink multiLink = optionalMultiLink.get();
                 multiLinkService.visit(multiLink);
-                response.sendRedirect("//" + multiLink.getLink().toString());
+                String link = multiLink.getLink().toString();
+                response.sendRedirect((link.length() > link.replaceAll("//", "").length() ? "" :"//" ) + link);
                 return;
             }
         }

@@ -22,8 +22,8 @@ public class CutLinkServiceImpl implements CutLinkService {
     }
 
     @Override
-    public void createCut(CutLink cutLink) {
-        cutLinkRepository.createCut(cutLink);
+    public CutLink createCut(CutLink cutLink) {
+        return cutLinkRepository.createCut(cutLink);
     }
 
     @Override

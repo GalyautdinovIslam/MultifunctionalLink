@@ -4,12 +4,11 @@ import ru.itis.exceptions.AlreadySubscribedException;
 import ru.itis.exceptions.AlreadyUnsubscribedException;
 import ru.itis.models.Account;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface AccountRepository extends CrudRepository<Account>{
 
-    void createAccount(Account account);
+    Account createAccount(Account account);
 
     void updatePassword(Account account);
 

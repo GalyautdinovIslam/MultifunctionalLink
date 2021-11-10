@@ -6,7 +6,7 @@
         <span id="span">10</span>
         секунд Вы будете переведены по ссылке:
     </h2>
-    <a href="//${cutLink.getLink()}" id="cutLinkHref">
+    <a href="${cutLink.getLink()}" id="cutLinkHref">
         <p id="cutLink">
             ${cutLink.getLink()}
         </p>

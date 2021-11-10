@@ -49,14 +49,11 @@ public class CutStatsServlet extends HttpServlet {
                     }
 
                     CutLink cutLink = optionalCutLink.get();
-                    System.out.println(cutLink.getOwner().getId());
-                    System.out.println(account.getId());
                     if (!cutLink.getOwner().getId().equals(account.getId())) {
-                        System.out.println("test");
                         throw new BadCutIdException();
                     }
 
-                    String linkToCopy = request.getRequestURI().replaceAll("/stats.+", "/c/" + cutLink.getCut());
+                    String linkToCopy = request.getRequestURL().toString().replaceAll("/stats.+", "/c/" + cutLink.getCut());
                     request.setAttribute("cutLink", cutLink);
                     request.setAttribute("linkToCopy", linkToCopy);
                     request.getRequestDispatcher("/WEB-INF/jsp/oneCutStats.jsp").forward(request, response);

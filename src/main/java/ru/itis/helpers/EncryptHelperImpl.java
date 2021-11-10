@@ -33,7 +33,7 @@ public class EncryptHelperImpl implements EncryptHelper {
         password = new String(chars);
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
-            return concatenateSequentially(md, password, 8, 2);
+            return concatenateSequentially(md, password, 2, 2);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }

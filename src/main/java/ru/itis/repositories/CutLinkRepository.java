@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface CutLinkRepository {
 
-    void createCut(CutLink cutLink);
+    CutLink createCut(CutLink cutLink);
 
     void deleteCut(CutLink cutLink);
 

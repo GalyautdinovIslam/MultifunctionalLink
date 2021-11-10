@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface CutLinkService {
 
-    void createCut(CutLink cutLink);
+    CutLink createCut(CutLink cutLink);
 
     String generateCut();
 

@@ -51,7 +51,7 @@ public class SignInServlet extends HttpServlet {
             response.sendRedirect(servletContext.getContextPath() + "/my");
         } catch (IncorrectSignInDataException ex) {
             request.setAttribute("email", accountSignInForm.getEmail());
-            request.setAttribute("message", ex.getMessage());
+            noticeHelper.addMessage(request, ex.getMessage(), false);
             request.getRequestDispatcher("/WEB-INF/jsp/signIn.jsp").forward(request, response);
         }
     }

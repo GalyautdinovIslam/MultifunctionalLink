@@ -62,7 +62,7 @@ public class SettingsServlet extends HttpServlet {
             noticeHelper.addMessage(request, Messages.SUCCESSFUL_CHANGE_PASSWORD.get(), true);
             response.sendRedirect(servletContext.getContextPath() + "/settings");
         } catch (BadOldPasswordException | BadNewPasswordException | PasswordMismatchException | SamePasswordException ex) {
-            request.setAttribute("message", ex.getMessage());
+            noticeHelper.addMessage(request, ex.getMessage(), false);
             request.getRequestDispatcher("/WEB-INF/jsp/settings.jsp").forward(request, response);
         }
 

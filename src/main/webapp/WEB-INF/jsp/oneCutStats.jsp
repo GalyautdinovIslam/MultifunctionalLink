@@ -3,13 +3,21 @@
 <%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
 <t:layout title="Статистика по короткой ссылке">
     <h2>Статистика по ссылке ${cutLink.getCut()}:</h2>
-    <input type="hidden" value="${linkToCopy}" id="link">
+    <c:if test="${linkToCopy.length() > linkToCopy.replaceAll(\"//\",\"\").length()}">
+        <input type="hidden" value="${linkToCopy}" id="link">
+    </c:if>
+    <c:if test="${linkToCopy.length() == linkToCopy.replaceAll(\"//\",\"\").length()}">
+        <input type="hidden" value="//${linkToCopy}" id="link">
+    </c:if>
     <button id="copyButton">Скопировать</button>
     <p>
         Оригинальная ссылка:
-        <a href="//${cutLink.getLink()}">
-            ${cutLink.getLink()}
-        </a>
+        <c:if test="${cutLink.getLink().toString().length() > cutLink.getLink().toString().replaceAll(\"//\",\"\").length()}">
+            <a href="${cutLink.getLink()}">${cutLink.getLink()}</a>
+        </c:if>
+        <c:if test="${cutLink.getLink().toString().length() == cutLink.getLink().toString().replaceAll(\"//\",\"\").length()}">
+            <a href="//${cutLink.getLink()}">${cutLink.getLink()}</a>
+        </c:if>
     </p>
     <br>
     <p>Переходов по ссылке: ${cutLink.getClicks()}</p>

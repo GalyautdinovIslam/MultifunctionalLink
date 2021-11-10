@@ -1,6 +1,8 @@
 package ru.itis.servlets;
 
 import ru.itis.exceptions.AlreadySubscribedException;
+import ru.itis.helpers.Messages;
+import ru.itis.helpers.NoticeHelper;
 import ru.itis.models.Account;
 import ru.itis.services.AccountService;
 import ru.itis.services.SecurityService;
@@ -21,12 +23,14 @@ public class SubscribeServlet extends HttpServlet {
     private ServletContext servletContext;
     private SecurityService securityService;
     private AccountService accountService;
+    private NoticeHelper noticeHelper;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         servletContext = config.getServletContext();
         securityService = (SecurityService) servletContext.getAttribute("securityService");
         accountService = (AccountService) servletContext.getAttribute("accountService");
+        noticeHelper = (NoticeHelper) servletContext.getAttribute("noticeHelper");
     }
 
     @Override
@@ -39,7 +43,6 @@ public class SubscribeServlet extends HttpServlet {
         if (securityService.isAuth(request)) {
             Account account = securityService.getAuthAccount(request);
             String nickname = request.getParameter("profileToSub");
-            System.out.println(nickname);
             Optional<Account> optionalAccount = accountService.findByNickname(nickname);
             if(optionalAccount.isPresent()){
                 Account profile = optionalAccount.get();
@@ -47,7 +50,7 @@ public class SubscribeServlet extends HttpServlet {
                     accountService.subscribe(account, profile);
                     response.sendRedirect(servletContext.getContextPath() + "/profile/" + nickname);
                 } catch (AlreadySubscribedException ex) {
-                    request.setAttribute("message", ex.getMessage());
+                    noticeHelper.addMessage(request, ex.getMessage(), false);
                     request.getRequestDispatcher("/WEB-INF/jsp/profile.jsp").forward(request, response);
                 }
             }

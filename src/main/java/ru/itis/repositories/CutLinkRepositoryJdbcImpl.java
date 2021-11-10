@@ -1,16 +1,13 @@
 package ru.itis.repositories;
 
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.ResultSetExtractor;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import ru.itis.models.Account;
 import ru.itis.models.CutLink;
+import ru.itis.repositories.jdbcTemplate.JdbcTemplate;
+import ru.itis.repositories.jdbcTemplate.ResultSetExtractor;
 
 import javax.sql.DataSource;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.sql.PreparedStatement;
 import java.util.*;
 
 public class CutLinkRepositoryJdbcImpl implements CutLinkRepository {
@@ -73,11 +70,11 @@ public class CutLinkRepositoryJdbcImpl implements CutLinkRepository {
                         .addedAt(resultSet.getDate("added_at"))
                         .build();
 
-                if(resultSet.getString("link") != null) {
+                if (resultSet.getString("link") != null) {
                     cutLink.setLink(new URI(resultSet.getString("link")));
                 }
 
-                if(cutLink.getCut() != null) cutLinks.add(cutLink);
+                if (cutLink.getCut() != null) cutLinks.add(cutLink);
             } catch (URISyntaxException e) {
                 throw new IllegalStateException(e);
             }
@@ -93,62 +90,24 @@ public class CutLinkRepositoryJdbcImpl implements CutLinkRepository {
     }
 
     @Override
-    public void createCut(CutLink cutLink) {
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_CREATE_CUT, new String[]{"id", "clicks", "added_at"});
-
-            preparedStatement.setLong(1, cutLink.getOwner().getId());
-            preparedStatement.setString(2, cutLink.getCut());
-            preparedStatement.setString(3, cutLink.getLink().toString());
-
-            return preparedStatement;
-        }, keyHolder);
-
-        Map<String, Object> keys = keyHolder.getKeys();
-
-        Long id = (Long) keys.get("id");
-        Integer clicks = (Integer) keys.get("clicks");
-        Date addedAt = (Date) keys.get("added_at");
-
-        cutLink.setId(id);
-        cutLink.setClicks(clicks);
-        cutLink.setAddedAt(addedAt);
+    public CutLink createCut(CutLink cutLink) {
+        jdbcTemplate.update(SQL_CREATE_CUT, cutLink.getOwner().getId(), cutLink.getCut(), cutLink.getLink().toString());
+        return findByCut(cutLink.getCut()).get();
     }
 
     @Override
     public void deleteCut(CutLink cutLink) {
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_CUT_BY_ID);
-
-            preparedStatement.setLong(1, cutLink.getId());
-
-            return preparedStatement;
-        });
+        jdbcTemplate.update(SQL_DELETE_CUT_BY_ID, cutLink.getId());
     }
 
     @Override
     public void deleteAllCutByAccount(Account account) {
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_ACCOUNT_CUTS);
-
-            preparedStatement.setLong(1, account.getId());
-
-            return preparedStatement;
-        });
+        jdbcTemplate.update(SQL_DELETE_ACCOUNT_CUTS, account.getId());
     }
 
     @Override
     public void updateClicks(CutLink cutLink) {
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_UPDATE_CLICKS);
-
-            preparedStatement.setInt(1, cutLink.getClicks() + 1);
-            preparedStatement.setLong(2, cutLink.getId());
-
-            return preparedStatement;
-        });
+        jdbcTemplate.update(SQL_UPDATE_CLICKS, cutLink.getClicks() + 1, cutLink.getId());
     }
 
     @Override

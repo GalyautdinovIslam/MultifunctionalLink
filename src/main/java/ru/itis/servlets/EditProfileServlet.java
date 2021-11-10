@@ -62,7 +62,7 @@ public class EditProfileServlet extends HttpServlet {
 
         } catch (NumberFormatException | BadAgeException ex) {
             request.setAttribute("age", request.getParameter("age"));
-            request.setAttribute("message", ex.getMessage());
+            noticeHelper.addMessage(request, ex.getMessage(), false);
             request.getRequestDispatcher("/WEB-INF/jsp/edit.jsp").forward(request, response);
         }
     }

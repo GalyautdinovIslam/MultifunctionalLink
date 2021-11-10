@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface MultiLinkRepository {
 
-    void createMulti(MultiLink multiLink);
+    MultiLink createMulti(MultiLink multiLink);
 
     void deleteMulti(MultiLink multiLink);
 

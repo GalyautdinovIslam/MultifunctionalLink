@@ -76,7 +76,7 @@ public class NewPasswordServlet extends HttpServlet {
                 noticeHelper.addMessage(request, Messages.SUCCESSFUL_CHANGE_PASSWORD.get(), true);
                 response.sendRedirect(servletContext.getContextPath() + "/my");
             } catch (BadNewPasswordException | PasswordMismatchException ex) {
-                request.setAttribute("message", ex.getMessage());
+                noticeHelper.addMessage(request, ex.getMessage(), false);
                 request.getRequestDispatcher("WEB-INF/jsp/newPassword.jsp").forward(request, response);
             }
         } else {

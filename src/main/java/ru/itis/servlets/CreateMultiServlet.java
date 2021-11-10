@@ -62,7 +62,7 @@ public class CreateMultiServlet extends HttpServlet {
                         .link(uri)
                         .build();
 
-                multiLinkService.createMulti(multiLink);
+                multiLink = multiLinkService.createMulti(multiLink);
                 owner.getMultiLinks().add(multiLink);
                 securityService.updateAuthAccount(request, owner);
 
@@ -71,7 +71,7 @@ public class CreateMultiServlet extends HttpServlet {
                 throw new BadLinkException();
             }
         } catch (BadLinkException | BadMultiNameException ex) {
-            request.setAttribute("message", ex.getMessage());
+            noticeHelper.addMessage(request, ex.getMessage(), false);
             request.getRequestDispatcher("/WEB-INF/jsp/createMulti.jsp").forward(request, response);
         }
     }

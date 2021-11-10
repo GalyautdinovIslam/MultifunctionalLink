@@ -4,9 +4,12 @@
 <t:layout title="Статистика по профильной ссылке">
     <h2>Статистика по ссылке ${multiLink.getName()}:</h2>
     <p>Ссылка:
-        <a href="//${multiLink.getLink()}">
-            ${multiLink.getLink()}
-        </a>
+        <c:if test="${multiLink.getLink().toString().length() > multiLink.getLink().toString().replaceAll(\"//\",\"\").length()}">
+            <a href="${multiLink.getLink()}">${multiLink.getLink()}</a>
+        </c:if>
+        <c:if test="${multiLink.getLink().toString().length() == multiLink.getLink().toString().replaceAll(\"//\",\"\").length()}">
+            <a href="//${multiLink.getLink()}">${multiLink.getLink()}</a>
+        </c:if>
     </p>
     <br>
     <p>Переходов по ссылке: ${multiLink.getClicks()}</p>

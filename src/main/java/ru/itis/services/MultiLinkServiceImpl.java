@@ -20,8 +20,8 @@ public class MultiLinkServiceImpl implements MultiLinkService {
     }
 
     @Override
-    public void createMulti(MultiLink multiLink) {
-        multiLinkRepository.createMulti(multiLink);
+    public MultiLink createMulti(MultiLink multiLink) {
+        return multiLinkRepository.createMulti(multiLink);
     }
 
     @Override

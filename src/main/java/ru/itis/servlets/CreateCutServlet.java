@@ -60,7 +60,7 @@ public class CreateCutServlet extends HttpServlet {
                         .link(uri)
                         .build();
 
-                cutLinkService.createCut(cutLink);
+                cutLink = cutLinkService.createCut(cutLink);
                 owner.getCutLinks().add(cutLink);
                 securityService.updateAuthAccount(request, owner);
 
@@ -69,7 +69,7 @@ public class CreateCutServlet extends HttpServlet {
                 throw new BadLinkException();
             }
         } catch (BadLinkException ex) {
-            request.setAttribute("message", ex.getMessage());
+            noticeHelper.addMessage(request, ex.getMessage(), false);
             request.getRequestDispatcher("/WEB-INF/jsp/createСut.jsp").forward(request, response);
         }
     }

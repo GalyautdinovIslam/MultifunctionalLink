@@ -39,7 +39,7 @@ public class DeleteAccountServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String password = encryptHelper.encryptPassword(request.getParameter("password"));
+        String password = encryptHelper.encryptPassword(request.getParameter("oldPassword"));
         Account account = securityService.getAuthAccount(request);
         if(account.getPassword().equals(password)) {
             cutLinkService.deleteAllCutsByAccount(account);
@@ -49,7 +49,7 @@ public class DeleteAccountServlet extends HttpServlet {
             response.sendRedirect(servletContext.getContextPath());
         } else {
             request.setAttribute("message", new PasswordMismatchException().getMessage());
-            request.getRequestDispatcher("/WEB-INF/jsp/settings").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/jsp/settings.jsp").forward(request, response);
         }
     }
 }

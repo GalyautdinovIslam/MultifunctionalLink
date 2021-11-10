@@ -10,10 +10,7 @@ import ru.itis.models.Account;
 import ru.itis.repositories.AccountRepository;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public class SecurityServiceImpl implements SecurityService {
@@ -92,7 +89,7 @@ public class SecurityServiceImpl implements SecurityService {
 
         password = encryptHelper.encryptPassword(password);
         Account account = new Account(email, password, nickname);
-        accountRepository.createAccount(account);
+        account = accountRepository.createAccount(account);
         request.setAttribute("justSignUp", account);
     }
 

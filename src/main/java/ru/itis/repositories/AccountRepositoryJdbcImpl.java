@@ -1,19 +1,16 @@
 package ru.itis.repositories;
 
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.ResultSetExtractor;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import ru.itis.exceptions.AlreadySubscribedException;
 import ru.itis.exceptions.AlreadyUnsubscribedException;
 import ru.itis.models.Account;
 import ru.itis.models.CutLink;
 import ru.itis.models.MultiLink;
+import ru.itis.repositories.jdbcTemplate.JdbcTemplate;
+import ru.itis.repositories.jdbcTemplate.ResultSetExtractor;
 
 import javax.sql.DataSource;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.sql.PreparedStatement;
 import java.util.*;
 
 public class AccountRepositoryJdbcImpl implements AccountRepository {
@@ -279,74 +276,29 @@ public class AccountRepositoryJdbcImpl implements AccountRepository {
     }
 
     @Override
-    public void createAccount(Account account) {
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_CREATE_ACCOUNT, new String[]{"id", "created_at"});
-
-            preparedStatement.setString(1, account.getEmail());
-            preparedStatement.setString(2, account.getPassword());
-            preparedStatement.setString(3, account.getNickname());
-
-            return preparedStatement;
-        }, keyHolder);
-
-        Map<String, Object> keys = keyHolder.getKeys();
-
-        Long id = (Long) keys.get("id");
-        Date createdAt = (Date) keys.get("created_at");
-
-        account.setId(id);
-        account.setCreatedAt(createdAt);
-
+    public Account createAccount(Account account) {
+        jdbcTemplate.update(SQL_CREATE_ACCOUNT, account.getEmail(), account.getPassword(), account.getNickname());
+        return findByEmail(account.getEmail()).get();
     }
 
     @Override
     public void updatePassword(Account account) {
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_UPDATE_PASSWORD);
-
-            preparedStatement.setString(1, account.getPassword());
-            preparedStatement.setLong(2, account.getId());
-
-            return preparedStatement;
-        });
+        jdbcTemplate.update(SQL_UPDATE_PASSWORD, account.getPassword(), account.getId());
     }
 
     @Override
     public void updateAge(Account account) {
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_UPDATE_AGE);
-
-            preparedStatement.setInt(1, account.getAge());
-            preparedStatement.setLong(2, account.getId());
-
-            return preparedStatement;
-        });
+        jdbcTemplate.update(SQL_UPDATE_AGE, account.getAge(), account.getId());
     }
 
     @Override
     public void updateStatus(Long id) {
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_UPDATE_STATUS);
-
-            preparedStatement.setLong(1, id);
-
-            return preparedStatement;
-        });
+        jdbcTemplate.update(SQL_UPDATE_STATUS, id);
     }
 
     @Override
     public void subscribe(Account who, Account subTo) throws AlreadySubscribedException {
-        int i = jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_SUBSCRIBE);
-
-            preparedStatement.setLong(1, who.getId());
-            preparedStatement.setLong(2, subTo.getId());
-
-            return preparedStatement;
-        });
+        int i = jdbcTemplate.update(SQL_SUBSCRIBE, who.getId(), subTo.getId());;
 
         if (i == 0) throw new AlreadySubscribedException();
 
@@ -356,14 +308,7 @@ public class AccountRepositoryJdbcImpl implements AccountRepository {
 
     @Override
     public void unsubscribe(Account who, Account subTo) throws AlreadyUnsubscribedException {
-        int i = jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_UNSUBSCRIBE);
-
-            preparedStatement.setLong(1, who.getId());
-            preparedStatement.setLong(2, subTo.getId());
-
-            return preparedStatement;
-        });
+        int i = jdbcTemplate.update(SQL_UNSUBSCRIBE, who.getId(), subTo.getId());
 
         if (i == 0) throw new AlreadyUnsubscribedException();
 
@@ -383,38 +328,10 @@ public class AccountRepositoryJdbcImpl implements AccountRepository {
 
     @Override
     public void deleteAccount(Account account) {
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_SUBS);
-
-            preparedStatement.setLong(1, account.getId());
-            preparedStatement.setLong(2, account.getId());
-
-            return preparedStatement;
-        });
-
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_SIGN_UP);
-
-            preparedStatement.setLong(1, account.getId());
-
-            return preparedStatement;
-        });
-
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_RECOVERY);
-
-            preparedStatement.setLong(1, account.getId());
-
-            return preparedStatement;
-        });
-
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_ACCOUNT);
-
-            preparedStatement.setLong(1, account.getId());
-
-            return preparedStatement;
-        });
+        jdbcTemplate.update(SQL_DELETE_SUBS, account.getId(), account.getId());
+        jdbcTemplate.update(SQL_DELETE_SIGN_UP, account.getId());
+        jdbcTemplate.update(SQL_DELETE_RECOVERY, account.getId());
+        jdbcTemplate.update(SQL_DELETE_ACCOUNT, account.getId());
     }
 
     @Override
@@ -447,14 +364,7 @@ public class AccountRepositoryJdbcImpl implements AccountRepository {
         this.updatePassword(account);
         this.updateAge(account);
 
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_SUBS);
-
-            preparedStatement.setLong(1, account.getId());
-            preparedStatement.setLong(2, account.getId());
-
-            return preparedStatement;
-        });
+        jdbcTemplate.update(SQL_DELETE_SUBS, account.getId(), account.getId());
 
         Set<Account> subscribers = account.getSubscribers();
         Set<Account> subscriptions = account.getSubscriptions();
@@ -466,7 +376,8 @@ public class AccountRepositoryJdbcImpl implements AccountRepository {
             for (Account a : subscriptions) {
                 this.subscribe(account, a);
             }
-        } catch (AlreadySubscribedException ignored) {}
+        } catch (AlreadySubscribedException ignored) {
+        }
     }
 
     @Override
@@ -477,7 +388,7 @@ public class AccountRepositoryJdbcImpl implements AccountRepository {
     @Override
     public Optional<Account> findById(Long id) {
         List<Account> accounts = jdbcTemplate.query(SQL_FIND_BY_ID, rse, id);
-        if(accounts != null) {
+        if (accounts != null) {
             if (accounts.size() > 1) throw new IllegalStateException();
             else if (accounts.size() == 1) return Optional.of(accounts.get(0));
         }

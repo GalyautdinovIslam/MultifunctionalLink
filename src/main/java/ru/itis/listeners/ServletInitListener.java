@@ -78,6 +78,7 @@ public class ServletInitListener implements ServletContextListener {
         servletContext.setAttribute("mailService", mailService);
         servletContext.setAttribute("noticeHelper", noticeHelper);
         servletContext.setAttribute("validator", validator);
+        servletContext.setAttribute("encryptHelper", encryptHelper);
     }
 
     @Override

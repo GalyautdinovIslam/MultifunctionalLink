@@ -6,7 +6,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-// TODO: посмотреть httpFilter
+
 @WebFilter("/*")
 public class EncodingFilter implements Filter {
     @Override

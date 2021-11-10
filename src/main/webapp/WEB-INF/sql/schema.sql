@@ -2,7 +2,7 @@ create table account
 (
     id         bigserial primary key,
     email      varchar(256) unique not null,
-    password   varchar(256)        not null,
+    password   varchar(64)        not null,
     nickname   varchar(20) unique  not null,
     age        integer,
     created_at timestamp           not null default current_timestamp,

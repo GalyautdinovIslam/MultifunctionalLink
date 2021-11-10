@@ -31,6 +31,7 @@ public class MyProfileServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         if (securityService.isAuth(request)) {
             request.setAttribute("profile", securityService.getAuthAccount(request));
+
             request.getRequestDispatcher("/WEB-INF/jsp/myProfile.jsp").forward(request, response);
         } else {
             noticeHelper.addMessage(request, Messages.NOT_AUTH.get(), false);

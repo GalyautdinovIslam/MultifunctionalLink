@@ -1,10 +1,9 @@
 package ru.itis.repositories;
 
-import org.springframework.jdbc.core.JdbcTemplate;
 import ru.itis.models.Account;
+import ru.itis.repositories.jdbcTemplate.JdbcTemplate;
 
 import javax.sql.DataSource;
-import java.sql.PreparedStatement;
 import java.util.HashSet;
 import java.util.Optional;
 
@@ -64,25 +63,12 @@ public class SecurityRepositoryJdbcImpl implements SecurityRepository {
 
     @Override
     public void createRecoveryCode(Account account, String recoveryCode) {
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_CREATE_RECOVERY_CODE);
-
-            preparedStatement.setLong(1, account.getId());
-            preparedStatement.setString(2, recoveryCode);
-
-            return preparedStatement;
-        });
+        jdbcTemplate.update(SQL_CREATE_RECOVERY_CODE, account.getId(), recoveryCode);
     }
 
     @Override
     public void deleteRecoveryCode(Long id) {
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_RECOVERY_CODE);
-
-            preparedStatement.setLong(1, id);
-
-            return preparedStatement;
-        });
+        jdbcTemplate.update(SQL_DELETE_RECOVERY_CODE, id);
     }
 
     @Override
@@ -92,24 +78,11 @@ public class SecurityRepositoryJdbcImpl implements SecurityRepository {
 
     @Override
     public void createSignUpCode(Account account, String code) {
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_CREATE_SIGN_UP_CODE);
-
-            preparedStatement.setLong(1, account.getId());
-            preparedStatement.setString(2, code);
-
-            return preparedStatement;
-        });
+        jdbcTemplate.update(SQL_CREATE_SIGN_UP_CODE, account.getId(), code);
     }
 
     @Override
     public void deleteSignUpCode(Long id) {
-        jdbcTemplate.update(connection -> {
-            PreparedStatement preparedStatement = connection.prepareStatement(SQL_DELETE_SIGN_UP_CODE);
-
-            preparedStatement.setLong(1, id);
-
-            return preparedStatement;
-        });
+        jdbcTemplate.update(SQL_DELETE_SIGN_UP_CODE, id);
     }
 }

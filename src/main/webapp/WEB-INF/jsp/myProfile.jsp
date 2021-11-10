@@ -10,7 +10,12 @@
     <c:if test="${profile.getMultiLinks().size() > 0}">
         <p><b>Ссылки:</b></p>
         <c:forEach items="${profile.getMultiLinks()}" var="multiLink">
-            <a href="//${multiLink.getLink()}">${multiLink.getName()}</a>
+            <c:if test="${multiLink.getLink().toString().length() > multiLink.getLink().toString().replaceAll(\"//\",\"\").length()}">
+                <a href="${multiLink.getLink()}">${multiLink.getName()}</a>
+            </c:if>
+            <c:if test="${multiLink.getLink().toString().length() == multiLink.getLink().toString().replaceAll(\"//\",\"\").length()}">
+                <a href="//${multiLink.getLink()}">${multiLink.getName()}</a>
+            </c:if>
             <br>
         </c:forEach>
     </c:if>
